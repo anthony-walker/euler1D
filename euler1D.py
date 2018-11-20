@@ -20,7 +20,7 @@ dims = domain.getDomainDims()
 domain.setNodeVals(rightBC,range(dims[0]),range(dims[1]))
 domain.setNodeVals(leftBC,range(1),range(dims[1]))
 dx = 1/dims[0]
-dt = 0.00001
+dt = 0.000001
 t = 2
 dtdx = dt/dx
 # Time steps
