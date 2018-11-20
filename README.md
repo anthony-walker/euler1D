@@ -8,7 +8,7 @@ Executing this file as is will execute the sample problem setup with the sample
 domain setup found in the euler1D.txt file.  
 
 ## Supporting files
-nodeFileGenerator.py - this file can be used to create a new domain text file.
+nodeFileGenerator.py - this file can be used to create a new domain text file.  
 dataPlot.py - this is used to analyze all the results in a directory.
               update this file appropriately in the file __main__ to change the
               directory and other properties.  
