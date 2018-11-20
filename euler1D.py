@@ -21,7 +21,7 @@ domain.setNodeVals(rightBC,range(dims[0]),range(dims[1]))
 domain.setNodeVals(leftBC,range(1),range(dims[1]))
 dx = 1/dims[0]
 dt = 0.000001
-t = 2
+t = 3
 dtdx = dt/dx
 # Time steps
 timeSteps = t/dt
