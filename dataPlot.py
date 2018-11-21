@@ -24,7 +24,7 @@ def dataPlot(directory,labelList,l2s):
             bool = False
         for j in range(len(columnList)):
             fileDataList[j]+=(columnList[j],)
-    x =np.linspace(0,1,100)
+    x =np.linspace(0,1,len(columnList[0]))
     fig, axes = plt.subplots(2,2)
     i = 0
     axes[0,0].set_title(labelList[0])

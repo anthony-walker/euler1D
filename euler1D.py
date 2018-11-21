@@ -81,7 +81,8 @@ def euler1D(directory = None):
             eulerSaveStr = dirStr+"/e1"+eStr+".txt"
             sI+=1
             domain.domainToFile(eulerSaveStr,eulerInfo)
-            #domain.printNodes()
+            sodStr = dirStr+"/aSol1"+eStr+".txt"
+            sodShock(sodStr,eulerInfo,tCurr,numPts = dims[0])
         tCurr+=dt
     print("Calculation Complete...")
 
@@ -118,7 +119,6 @@ def euler(step):
         #finding flux
         fU = flux(qI[0],qI[1])
         fD = flux(qI[2],qI[3])
-
         flx += unmakeQ((qN[0][1:] + dtdx*sc*(fU-fD),))
 
     return flx

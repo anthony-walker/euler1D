@@ -12,6 +12,7 @@ nodeFileGenerator.py - this file can be used to create a new domain text file.
 dataPlot.py - this is used to analyze all the results in a directory.
               update this file appropriately in the file __main__ to change the
               directory and other properties.  
+sodshock.py - this is the analytical solution of the sodshock tube problem
 
 ### fluid_domain module
 domain.py - use this file to create a domain from a given text file.  
