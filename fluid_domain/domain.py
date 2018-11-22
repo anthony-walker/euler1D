@@ -155,7 +155,7 @@ class domain(object):  # A function to combine all methods
         """Use this method to convert the node tuple generated to a 3d array."""
 
         dims = self.findTupleDimensions(nodeTuple)
-        xTupList = list()  # Temporaprint(returnDomain)ry list to convert to tuple
+        xTupList = list()  # Temporary list to convert to tuple
         #print(dims)
         for j in range(dims[0]):
             xTupList.append(nodeTuple[0:dims[1]])

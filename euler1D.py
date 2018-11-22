@@ -10,18 +10,18 @@ import fluid_domain as fd
 import numpy as np
 import time
 import os
-
+import math
 #Problem set up - Sod Shock Problem
 gamma = 1.4
 leftBC = (1.0,1.0,0,2.5)
 rightBC = (0.1,0.125,0,0.25)
 domain = fd.domain("euler1D.txt")
 dims = domain.getDomainDims()
-domain.setNodeVals(rightBC,range(dims[0]),range(dims[1]))
-domain.setNodeVals(leftBC,range(1),range(dims[1]))
+domain.setNodeVals(rightBC,range(int(dims[0]/2),dims[0]),range(dims[1]))
+domain.setNodeVals(leftBC,range(0,int(dims[0]/2)),range(dims[1]))
 dx = 1/dims[0]
-dt = 0.000001
-t = 3
+dt = 0.0001
+t = 1
 dtdx = dt/dx
 # Time steps
 timeSteps = t/dt
@@ -38,6 +38,8 @@ def euler1D(directory = None):
     if(directory is None):
         directory = input("Enter a directory for values to be stored inside results. ")
         dirStr = "results/"+directory
+    else:
+        dirStr = directory
     if not os.path.isdir(dirStr):
         print("Creating directory...")
         os.mkdir(dirStr)
@@ -139,6 +141,13 @@ def flux(qL,qR):
     qSP[1] = (rootrhoL*uL+rootrhoR*uR)/(rootrhoL+rootrhoR)
     qSP[2] = (rootrhoL*uL+rootrhoR*uR)/(rootrhoL+rootrhoR)
     pSP = eqnState(qSP[2],qSP[0],qSP[1])
+    #PROBLEM HERE
+    if gamma*pSP/qSP[0] < 0 or math.isnan(gamma*pSP/qSP[0]):
+        print(pSP)
+        print(qSP[0])
+        print(gamma*pSP/qSP[0])
+        input()
+
     rSP = np.sqrt(gamma*pSP/qSP[0])+abs(qSP[1])
     #flux
     pL = eqnState(eL,qL[0],uL)
