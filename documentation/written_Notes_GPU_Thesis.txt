@@ -1,0 +1,12 @@
+
+	
+Notes regarding nomenclature of the GPU project.
+
+	A kernal is the central part of the operating system that manages the computers operations
+	and hardware.
+
+	flattening an array makes it into a condensed version (fewer dimensions) of its former self
+	while still containing all of the same information
+
+	Stencil Codes are a class of iterative kernals which update array elements according to some 
+	fixed pattern which is the "stencil"
