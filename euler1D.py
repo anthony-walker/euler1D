@@ -17,9 +17,12 @@ leftBC = (1.0,1.0,0,2.5)
 rightBC = (0.1,0.125,0,0.25)
 domain = fd.domain("euler1D.txt")
 dims = domain.getDomainDims()
-domain.setNodeVals(rightBC,range(int(dims[0]/2),dims[0]),range(dims[1]))
-domain.setNodeVals(leftBC,range(0,int(dims[0]/2)),range(dims[1]))
-dx = 1/dims[0]
+#domain.setNodeVals(rightBC,range(int(dims[0]/2),dims[0]),range(dims[1]))
+# domain.setNodeVals(leftBC,range(0,int(dims[0]/2)),range(dims[1]))
+domain.setNodeVals(rightBC,range(dims[0]),range(dims[1]))
+domain[0][:] = leftBC
+dx = 1/(dims[0])
+print(dx)
 dt = 0.0001
 t = 1
 dtdx = dt/dx
@@ -57,7 +60,6 @@ def euler1D(directory = None):
     eulerInfo.append("nSteps = "+str(timeSteps))
     eulerInfo.append("[Pressure]   [Density]    [Velocity]    [Internal Energy]")
     domain.domainToFile(dirStr+"/e1a.txt",eulerInfo)
-
     print("Beginning Calculations...")
     for k in range(timeSteps+1):
         qHalfStep = euler(0)
@@ -87,7 +89,7 @@ def euler1D(directory = None):
             sodShock(sodStr,eulerInfo,tCurr,numPts = dims[0])
         tCurr+=dt
     print("Calculation Complete...")
-
+    # euler(0)
 def euler(step):
     """Use this to solve euler1D."""
     j=0 #This is for 2D
@@ -100,7 +102,7 @@ def euler(step):
         sc = 1/4
         step = 1
 
-    for i in range(dims[0]):
+    for i in range(1,dims[0]):
         #Getting points from domain
         P = domain[i,j][:]
         W = boundaryHandler(domain,i,j,-1)
@@ -111,13 +113,19 @@ def euler(step):
         ns = (P,W,WW,E,EE,)
         #makeQ
         qN = makeQ(ns)
+
         #allocate Q for interface
-        qI = tuple()
+
         #Getting reconstructed Q values at interface
+        qQ = mmdlim(ns,0)
+        qI = tuple()
         qI += (minmod(qN[0],qN[1],qN[2],1,qN[0]-qN[1]),)
         qI += (minmod(qN[3],qN[0],qN[1],-1,qN[1]-qN[0]),)
         qI += (minmod(qN[3],qN[0],qN[1],1,qN[3]-qN[0]),)
         qI += (minmod(qN[4],qN[3],qN[0],-1,qN[0]-qN[3]),)
+        input()
+        print(qI)
+        print(qQ)
         #finding flux
         fU = flux(qI[0],qI[1])
         fD = flux(qI[2],qI[3])
@@ -142,11 +150,11 @@ def flux(qL,qR):
     qSP[2] = (rootrhoL*uL+rootrhoR*uR)/(rootrhoL+rootrhoR)
     pSP = eqnState(qSP[2],qSP[0],qSP[1])
     #PROBLEM HERE
-    if gamma*pSP/qSP[0] < 0 or math.isnan(gamma*pSP/qSP[0]):
-        print(pSP)
-        print(qSP[0])
-        print(gamma*pSP/qSP[0])
-        input()
+    # if gamma*pSP/qSP[0] < 0 or math.isnan(gamma*pSP/qSP[0]):
+    #     print(pSP)
+    #     print(qSP[0])
+    #     print(gamma*pSP/qSP[0])
+    #     input()
 
     rSP = np.sqrt(gamma*pSP/qSP[0])+abs(qSP[1])
     #flux
@@ -160,12 +168,45 @@ def eqnState(e,rho,u):
     """Use this method to solve for pressure."""
     P = (gamma-1)*(e-rho*u**2/2)
     return P
+def mmdlim(P,limInd):
+    """Use this method to get Q with a flux limitor."""
+    #Instance tuples
+    d = tuple()
+    Q = tuple()
+    C = tuple()
+    x = 1 #Handles exponent for pressure ratio
+    f = 1 #Switch side factor
+    c = 0 #Step counter
+    a = 0 #Difference counter
+    #Loop to get diffs and values of Q for minmod 0, 1, 1, 2 as example
+    for i in range(len(P)-1): #Pressure differences for all 5 points
+        d += (P[i+1][limInd]-P[i][limInd],)
+        if(x == 1):
+            x = x*-1
+            C+=(c,)
+            c = c+1
+        else:
+            x = x*-1
+            C+=(c,)
+    for c in C:
+        if (d[c] < 0 and d[c+1] < 0) or (d[c] > 0 and d[c+1] > 0): #Checking Differences
+            Pr = num/den
+            Q += (P[c][1:]+min(Pr**x,1)/2*x*f*(P[a][1:]-P[a+1][1:]),)
+        else:
+            #print("Inside else")
+            Q += (P[c][1:],)
+        if x < 0:
+            a = a+1
+            f = f*-1
+        x = x*-1
+    return Q
 def minmod(P1,P2,P3,expnt,diff):
     """Use this method to get Q with a flux limitor."""
     num = P1[0]-P2[0]
     den = P2[0]-P3[0]
     if(num < 0 and den < 0 or num > 0 and den > 0):
         #print("Inside minmod")
+
         Pr = num/den
         Q = P2[1:]+min(Pr**expnt,1)/2*diff[1:]
     else:
