@@ -11,21 +11,22 @@ import numpy as np
 import time
 import os
 import math
+import sodShock as sd
+import warnings
+warnings.filterwarnings("error")
 #Problem set up - Sod Shock Problem
 gamma = 1.4
 leftBC = (1.0,1.0,0,2.5)
 rightBC = (0.1,0.125,0,0.25)
 domain = fd.domain("euler1D.txt")
 dims = domain.getDomainDims()
-#domain.setNodeVals(rightBC,range(int(dims[0]/2),dims[0]),range(dims[1]))
-# domain.setNodeVals(leftBC,range(0,int(dims[0]/2)),range(dims[1]))
-domain.setNodeVals(rightBC,range(dims[0]),range(dims[1]))
-domain[0][:] = leftBC
-dx = 1/(dims[0])
-print(dx)
+domain.setNodeVals(rightBC,range(int(dims[0]/2),dims[0]),range(dims[1]))
+domain.setNodeVals(leftBC,range(0,int(dims[0]/2)),range(dims[1]))
+# domain.setNodeVals(rightBC,range(dims[0]),range(dims[1]))
+# domain[0][:] = leftBC
 dt = 0.0001
 t = 1
-dtdx = dt/dx
+dtdx = dt/domain.dx
 # Time steps
 timeSteps = t/dt
 if timeSteps%10>0:
@@ -55,7 +56,7 @@ def euler1D(directory = None):
     multipler = 1
     #Save Document information
     eulerInfo.append("Euler test case, time = 0")
-    eulerInfo.append("dx = "+str(dx))
+    eulerInfo.append("dx = "+str(domain.dx))
     eulerInfo.append("dt = "+str(dt))
     eulerInfo.append("nSteps = "+str(timeSteps))
     eulerInfo.append("[Pressure]   [Density]    [Velocity]    [Internal Energy]")
@@ -80,13 +81,12 @@ def euler1D(directory = None):
                     multipler += 1
                 eStr = chr(122)*multipler+str(count)
                 count+=1
-
             eulerInfo[0] = ("Euler test case, time = "+s1)
             eulerSaveStr = dirStr+"/e1"+eStr+".txt"
             sI+=1
             domain.domainToFile(eulerSaveStr,eulerInfo)
             sodStr = dirStr+"/aSol1"+eStr+".txt"
-            sodShock(sodStr,eulerInfo,tCurr,numPts = dims[0])
+            sd.sodShock(sodStr,eulerInfo,tCurr,numPts = dims[0])
         tCurr+=dt
     print("Calculation Complete...")
     # euler(0)
@@ -94,7 +94,6 @@ def euler(step):
     """Use this to solve euler1D."""
     j=0 #This is for 2D
     flx = tuple()
-
     if step:
         sc = 1/2
         step = 0
@@ -102,7 +101,7 @@ def euler(step):
         sc = 1/4
         step = 1
 
-    for i in range(1,dims[0]):
+    for i in range(1,dims[0]-1):
         #Getting points from domain
         P = domain[i,j][:]
         W = boundaryHandler(domain,i,j,-1)
@@ -110,22 +109,16 @@ def euler(step):
         E = boundaryHandler(domain,i,j,1)
         EE = boundaryHandler(domain,i,j,2)
         #nodes
-        ns = (P,W,WW,E,EE,)
+        ns = (WW,W,P,E,EE,)
         #makeQ
         qN = makeQ(ns)
-
-        #allocate Q for interface
-
         #Getting reconstructed Q values at interface
-        qQ = mmdlim(ns,0)
+        # qI = mmdlim(qN,0,i)
         qI = tuple()
-        qI += (minmod(qN[0],qN[1],qN[2],1,qN[0]-qN[1]),)
-        qI += (minmod(qN[3],qN[0],qN[1],-1,qN[1]-qN[0]),)
-        qI += (minmod(qN[3],qN[0],qN[1],1,qN[3]-qN[0]),)
-        qI += (minmod(qN[4],qN[3],qN[0],-1,qN[0]-qN[3]),)
-        input()
-        print(qI)
-        print(qQ)
+        qI += (minmod(qN[2],qN[1],qN[0],1,qN[2]-qN[1]),)
+        qI += (minmod(qN[3],qN[2],qN[1],-1,qN[1]-qN[2]),)
+        qI += (minmod(qN[3],qN[2],qN[1],1,qN[3]-qN[2]),)
+        qI += (minmod(qN[4],qN[3],qN[2],-1,qN[2]-qN[3]),)
         #finding flux
         fU = flux(qI[0],qI[1])
         fD = flux(qI[2],qI[3])
@@ -137,38 +130,41 @@ def flux(qL,qR):
     #Preallocation
     f = np.zeros(len(qL))
     qSP = np.zeros(len(qL))
+
     #getting principal node values
+    # try:
     rootrhoL = np.sqrt(qL[0])
     rootrhoR = np.sqrt(qR[0])
+        # if math.isnan(rootrhoL)or math.isnan(rootrhoR):
+        #     raise Exception("Test")
+    # except:
+    #         print(qL,qR)
+    #         input()
     uL = qL[1]/qL[0]
     uR = qR[1]/qR[0]
     eL = qL[2]/qL[0]
     eR = qR[2]/qR[0]
+
     #spectral
     qSP[0] = rootrhoL*rootrhoR
     qSP[1] = (rootrhoL*uL+rootrhoR*uR)/(rootrhoL+rootrhoR)
-    qSP[2] = (rootrhoL*uL+rootrhoR*uR)/(rootrhoL+rootrhoR)
-    pSP = eqnState(qSP[2],qSP[0],qSP[1])
-    #PROBLEM HERE
-    # if gamma*pSP/qSP[0] < 0 or math.isnan(gamma*pSP/qSP[0]):
-    #     print(pSP)
-    #     print(qSP[0])
-    #     print(gamma*pSP/qSP[0])
-    #     input()
+    qSP[2] = (rootrhoL*eL+rootrhoR*eR)/(rootrhoL+rootrhoR)
+    pSP = eqnState(qSP[0],qSP[1],qSP[2])
 
     rSP = np.sqrt(gamma*pSP/qSP[0])+abs(qSP[1])
+
     #flux
-    pL = eqnState(eL,qL[0],uL)
-    pR = eqnState(eR,qR[0],uR)
+    pL = eqnState(qL[0],uL,eL)
+    pR = eqnState(qR[0],uR,eR)
     f[0] = 0.5*(qL[1]+qR[1]+rSP*(qL[0]-qR[0]))
     f[1] = 0.5*(qL[0]*uL**2+pL+qR[0]*uR**2+pR+rSP*(qL[1]-qR[1]))
     f[2] = 0.5*(uL*(qL[2]+pL)+uR*(qR[2]+pR)+rSP*(qL[2]-qR[2]))
     return f
-def eqnState(e,rho,u):
+def eqnState(rho,u,e):
     """Use this method to solve for pressure."""
     P = (gamma-1)*(e-rho*u**2/2)
     return P
-def mmdlim(P,limInd):
+def mmdlim(P,limInd,k):
     """Use this method to get Q with a flux limitor."""
     #Instance tuples
     d = tuple()
@@ -176,7 +172,7 @@ def mmdlim(P,limInd):
     C = tuple()
     x = 1 #Handles exponent for pressure ratio
     f = 1 #Switch side factor
-    c = 0 #Step counter
+    c = 1 #Step counter
     a = 0 #Difference counter
     #Loop to get diffs and values of Q for minmod 0, 1, 1, 2 as example
     for i in range(len(P)-1): #Pressure differences for all 5 points
@@ -189,14 +185,20 @@ def mmdlim(P,limInd):
             x = x*-1
             C+=(c,)
     for c in C:
-        if (d[c] < 0 and d[c+1] < 0) or (d[c] > 0 and d[c+1] > 0): #Checking Differences
-            Pr = num/den
+        print(c)
+        if (d[c] < 0 and d[c-1] < 0) or (d[c] > 0 and d[c-1] > 0): #Checking Differences
+            Pr = d[c]/d[c-1]
+            if (x*f>0):
+                print("Inside MM: ",k,":",c , x, a, a+1)
+            else:
+                print("Inside MM: ",k,":",c , x, a+1, a)
             Q += (P[c][1:]+min(Pr**x,1)/2*x*f*(P[a][1:]-P[a+1][1:]),)
+            input()
         else:
             #print("Inside else")
             Q += (P[c][1:],)
         if x < 0:
-            a = a+1
+            a += 1
             f = f*-1
         x = x*-1
     return Q

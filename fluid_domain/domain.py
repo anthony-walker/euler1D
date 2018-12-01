@@ -182,6 +182,9 @@ class domain(object):  # A function to combine all methods
         self.xyEles = xDim*yDim
         self.xzEles = xDim*yDim
         self.yzEles = zDim*yDim
+        self.dx = 1/(xDim)
+        self.dy = 1/(yDim)
+        self.dz = 1/(zDim)
         return (xDim, yDim, zDim)
 
     def findTupleRange(self,currNodeTuple):

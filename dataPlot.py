@@ -70,4 +70,4 @@ def convFileToPlotData(fileName,linesToSkip):
 if __name__ == "__main__":
     labels = ["Pressure","Density","Velocity","Internal Energy"]
     lSkip = 6
-    dataPlot("results/sampleTest/subsample/",labels,lSkip)
+    dataPlot("results/testing/",labels,lSkip)
