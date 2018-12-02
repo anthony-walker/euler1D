@@ -199,7 +199,7 @@ def determineSavePts():
             saveInd+=(i,)
     return saveInd
 
-def directoryHandler(directory):
+def directoryHandler(directory = None):
     """Use this method to check if a directory exists or make one."""
     if(directory is None):
         directory = input("Enter a directory for values to be stored inside results. ")
