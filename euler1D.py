@@ -253,5 +253,5 @@ if __name__ == "__main__":
     dims = domain.getDomainDims()
     domain.setNodeVals(rightBC,range(int(dims[0]/2),dims[0]),range(dims[1]))
     domain.setNodeVals(leftBC,range(0,int(dims[0]/2)),range(dims[1]))
-    time = (1,0.00001)
+    time = (1,0.000001)
     euler1D(domain,time,sA = True)
