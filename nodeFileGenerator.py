@@ -18,4 +18,4 @@ def generateNodeFile(fileName, xRange=range(0,1), yRange=range(0,1), zRange = ra
 
 if __name__ == "__main__":
 
-    generateNodeFile("euler1D.txt", range(0,101), range(0,1))
+    generateNodeFile("euler1D.txt", range(0,1001), range(0,1))

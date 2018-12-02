@@ -11,8 +11,11 @@ import matplotlib.pyplot as plt
 import re
 import numpy as np
 import os
-def dataPlot(directory,labelList,l2s):
+def dataPlot(labelList,l2s,directory = None):
     """Use this method to plot data appropriately."""
+    if(directory is None):
+        directory = input("Enter a directory for data plotting. ")
+        directory = "results/"+directory+"/"
     fileList = sorted(os.listdir(directory))
     fileDataList = list()
     bool = True
@@ -70,4 +73,4 @@ def convFileToPlotData(fileName,linesToSkip):
 if __name__ == "__main__":
     labels = ["Pressure","Density","Velocity","Internal Energy"]
     lSkip = 6
-    dataPlot("results/testing/",labels,lSkip)
+    dataPlot(labels,lSkip)
