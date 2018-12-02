@@ -12,6 +12,7 @@ import time
 import os
 import math
 import sodShock as sd
+import nodeFileGenerator as nfg
 #Global variables - Allocation
 gamma = 1.4
 dtdx = 0
@@ -248,7 +249,7 @@ if __name__ == "__main__":
     leftBC = (1.0,1.0,0,2.5)
     rightBC = (0.1,0.125,0,0.25)
     #Domain Creation and Initialization
-    generateNodeFile("euler1D.txt", range(0,1001), range(0,1))
+    nfg.generateNodeFile("euler1D.txt", range(0,1001), range(0,1))
     domain = fd.domain("euler1D.txt")
     dims = domain.getDomainDims()
     domain.setNodeVals(rightBC,range(int(dims[0]/2),dims[0]),range(dims[1]))
