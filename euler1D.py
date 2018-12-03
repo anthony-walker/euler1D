@@ -113,12 +113,14 @@ def flux(qL,qR):
     uR = qR[1]/qR[0]
     eL = qL[2]/qL[0]
     eR = qR[2]/qR[0]
+    
     #spectral
     qSP[0] = rootrhoL*rootrhoR
     qSP[1] = (rootrhoL*uL+rootrhoR*uR)/(rootrhoL+rootrhoR)
     qSP[2] = (rootrhoL*eL+rootrhoR*eR)/(rootrhoL+rootrhoR)
     pSP = eqnState(qSP[0],qSP[1],qSP[2])
     rSP = np.sqrt(gamma*pSP/qSP[0])+abs(qSP[1])
+
     #flux
     pL = eqnState(qL[0],uL,eL)
     pR = eqnState(qR[0],uR,eR)
