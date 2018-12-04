@@ -12,6 +12,7 @@ import time
 import os
 import math
 import sodShock as sd
+import eulerExact as euE
 import nodeFileGenerator as nfg
 #Global variables - Allocation
 gamma = 1.4
@@ -19,9 +20,10 @@ dtdx = 0
 numsaves = 0
 timeSteps = 0
 dx = 0
+saveFactor = 10 #Controls number of times to save
 
 # Functions for sod shock problem
-def euler1D(domain,time, g = 1.4, directory = None,sA = False):
+def euler1D(domain,time, g = 1.4, directory = None,sA = False,eE = False):
     """Use this method to execute euler1D."""
     #Preliminary Steps
     #Updates Needed Global Variables
@@ -65,6 +67,9 @@ def euler1D(domain,time, g = 1.4, directory = None,sA = False):
             eulerSaveStr = dirStr+"/e1"+eStr+".txt"
             sI+=1
             domain.domainToFile(eulerSaveStr,eulerInfo)
+            if(eE):
+                eulEStr = dirStr+"/eESol1"+eStr+".txt"
+                euE.eulerExact(eulEStr,eulerInfo,tCurr,numPts = dims[0])
             if(sA):
                 sodStr = dirStr+"/aSol1"+eStr+".txt"
                 sd.sodShock(sodStr,eulerInfo,tCurr,numPts = dims[0])
@@ -113,7 +118,7 @@ def flux(qL,qR):
     uR = qR[1]/qR[0]
     eL = qL[2]/qL[0]
     eR = qR[2]/qR[0]
-    
+
     #spectral
     qSP[0] = rootrhoL*rootrhoR
     qSP[1] = (rootrhoL*uL+rootrhoR*uR)/(rootrhoL+rootrhoR)
@@ -216,7 +221,7 @@ def directoryHandler(directory = None):
 def globalVariableHandler(g,dX,time):
     """Use this method to update global variables before calculation."""
     global gamma
-    gamma = g #Allows changings of gamma if desired
+    gamma = g #Allows changings of gamma if =desired
     #Stepsize
     global dx
     dx = dX
@@ -225,7 +230,7 @@ def globalVariableHandler(g,dX,time):
     dtdx = time[1]/dx
     #Number of times to saves
     global numSaves
-    numSaves = time[0]*50
+    numSaves = time[0]*saveFactor
     # Time steps
     global timeSteps
     timeSteps = time[0]/time[1]
@@ -251,10 +256,10 @@ if __name__ == "__main__":
     leftBC = (1.0,1.0,0,2.5)
     rightBC = (0.1,0.125,0,0.25)
     #Domain Creation and Initialization
-    nfg.generateNodeFile("euler1D.txt", range(0,1001), range(0,1))
+    nfg.generateNodeFile("euler1D.txt", range(0,251), range(0,1))
     domain = fd.domain("euler1D.txt")
     dims = domain.getDomainDims()
     domain.setNodeVals(rightBC,range(int(dims[0]/2),dims[0]),range(dims[1]))
     domain.setNodeVals(leftBC,range(0,int(dims[0]/2)),range(dims[1]))
-    time = (1,0.000001)
-    euler1D(domain,time,sA = True)
+    time = (1,0.0001)
+    euler1D(domain,time,sA = True,eE = True)
