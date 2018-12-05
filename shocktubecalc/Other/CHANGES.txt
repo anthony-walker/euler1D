@@ -1,0 +1,11 @@
+version 0.14
+-------------------------------------------------------------------------------
+- Move calculation of speed of sound to a function
+- Get rid of numpy.arange in favor of numpy.linspace
+- Added unit test and an example
+
+
+version 0.13 
+-------------------------------------------------------------------------------
+ - Correctly compute the p4 pressure, even for large(r) pressure and density ratios.
+   Credits go to Joe Poynot for pointing and solving the issue

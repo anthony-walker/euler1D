@@ -1,0 +1,16 @@
+Metadata-Version: 1.1
+Name: shocktubecalc
+Version: 0.14
+Summary: Simple shock tube calculator
+Home-page: https://gitlab.com/fantaz/simple_shock_tube_calculator
+Author: Jerko Škifić
+Author-email: jerko.skific@riteh.hr
+License: MIT
+Description: UNKNOWN
+Platform: UNKNOWN
+Classifier: Programming Language :: Python :: 3
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Intended Audience :: Science/Research
+Classifier: Operating System :: OS Independent
+Classifier: Development Status :: 4 - Beta
+Classifier: Topic :: Scientific/Engineering :: Physics

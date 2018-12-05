@@ -1,0 +1,13 @@
+CHANGES.txt
+MANIFEST.in
+README.rst
+setup.py
+images/shock_tube_t0.png
+images/shock_tube_t_n.png
+shocktubecalc/__init__.py
+shocktubecalc/sod.py
+shocktubecalc.egg-info/PKG-INFO
+shocktubecalc.egg-info/SOURCES.txt
+shocktubecalc.egg-info/dependency_links.txt
+shocktubecalc.egg-info/not-zip-safe
+shocktubecalc.egg-info/top_level.txt

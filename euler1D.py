@@ -6,14 +6,16 @@
 #Changes to the time step, domain, and other properties can be made in
 #problem setup section below.
 
+#Import Statements
 import fluid_domain as fd
 import numpy as np
 import time
 import os
 import math
-import sodShock as sd
-import eulerExact as euE
-import nodeFileGenerator as nfg
+import supportingFiles as sf
+import shocktubecalc as stc
+
+
 #Global variables - Allocation
 gamma = 1.4
 dtdx = 0
@@ -23,7 +25,7 @@ dx = 0
 saveFactor = 10 #Controls number of times to save
 
 # Functions for sod shock problem
-def euler1D(domain,time, g = 1.4, directory = None,sA = False,eE = False):
+def euler1D(domain,time, g = 1.4, directory = None,aSol = False,ssSol = False):
     """Use this method to execute euler1D."""
     #Preliminary Steps
     #Updates Needed Global Variables
@@ -67,12 +69,18 @@ def euler1D(domain,time, g = 1.4, directory = None,sA = False,eE = False):
             eulerSaveStr = dirStr+"/e1"+eStr+".txt"
             sI+=1
             domain.domainToFile(eulerSaveStr,eulerInfo)
-            if(eE):
-                eulEStr = dirStr+"/eESol1"+eStr+".txt"
-                euE.eulerExact(eulEStr,eulerInfo,tCurr,numPts = dims[0])
-            if(sA):
+            if (aSol):
+                ss = stc.solve(t = tCurr,**{'npts':dims[0]})
+                ss = ss[2]
+                tDomain = tuple()
                 sodStr = dirStr+"/aSol1"+eStr+".txt"
-                sd.sodShock(sodStr,eulerInfo,tCurr,numPts = dims[0])
+                for x in range(len(ss['rho'])):
+                    e = sf.eqnState(ss['p'][x],ss['rho'][x],ss['u'][x],gamma)
+                    tDomain+=(np.array([ss['p'][x],ss['rho'][x],ss['u'][x],e]),)
+                sf.analytSolFile(tDomain,sodStr,eulerInfo)
+            if(ssSol):
+                sodStr = dirStr+"/ssSol1"+eStr+".txt"
+                sf.sodShock(sodStr,eulerInfo,tCurr,numPts = dims[0])
         tCurr+=time[1]
     print("Calculation Complete...")
 
@@ -133,10 +141,12 @@ def flux(qL,qR):
     f[1] = half*(qL[0]*uL**2+pL+qR[0]*uR**2+pR+rSP*(qL[1]-qR[1]))
     f[2] = half*(uL*(qL[2]+pL)+uR*(qR[2]+pR)+rSP*(qL[2]-qR[2]))
     return f
+
 def eqnState(rho,u,e):
     """Use this method to solve for pressure."""
     P = (gamma-1)*(e-rho*u*u/2)
     return P
+
 def mmdlim(P,limInd,k):
     """Use this method to get Q with a flux limitor."""
     #Instance tuples
@@ -242,6 +252,7 @@ def globalVariableHandler(g,dX,time):
 
 def documentInfoGeneration():
     """Use this to generate documentation heading information"""
+    """Use this to generate documentation heading information"""
     eulerInfo = list()
     eulerInfo.append("Euler test case, time = 0")
     eulerInfo.append("dx = "+str(dx))
@@ -256,10 +267,10 @@ if __name__ == "__main__":
     leftBC = (1.0,1.0,0,2.5)
     rightBC = (0.1,0.125,0,0.25)
     #Domain Creation and Initialization
-    nfg.generateNodeFile("euler1D.txt", range(0,251), range(0,1))
-    domain = fd.domain("euler1D.txt")
+    sf.generateNodeFile("textFiles/euler1D.txt", range(0,251), range(0,1))
+    domain = fd.domain("textFiles/euler1D.txt")
     dims = domain.getDomainDims()
     domain.setNodeVals(rightBC,range(int(dims[0]/2),dims[0]),range(dims[1]))
     domain.setNodeVals(leftBC,range(0,int(dims[0]/2)),range(dims[1]))
-    time = (1,0.0001)
-    euler1D(domain,time,sA = True,eE = True)
+    time = (0.2,0.001)
+    euler1D(domain,time,aSol= True,ssSol = True)

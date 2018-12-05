@@ -12,3 +12,10 @@ def minmod(P1,P2,P3,expnt,diff):
         #print("Inside else")
         Q = P2[1:]
     return Q
+#From euler 1D
+if(eE):
+    eulEStr = dirStr+"/eESol1"+eStr+".txt"
+    euE.eulerExact(eulEStr,eulerInfo,tCurr,numPts = dims[0])
+if(sA):
+    sodStr = dirStr+"/aSol1"+eStr+".txt"
+    sd.sodShock(sodStr,eulerInfo,tCurr,numPts = dims[0])
