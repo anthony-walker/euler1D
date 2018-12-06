@@ -2,7 +2,7 @@
 import numpy as np
 import datetime as dt
 
-def sodShock(fileName,fileStoreInfo,t = 0.2,lBC = (1.0,1.0,0,2.5),rBC = (0.1,0.125,0,0.25),gamma = 1.4,numPts = 1000):
+def sodShock(fileName,fileStoreInfo,t = 0.2,lBC = (1.0,1.0,0,2.5),rBC = (0.1,0.125,0,0.25),gamma = 1.4,npts = 1000):
     """Use this method to determine the analytic solution of sod shock problem."""
     #Important coeffcients
     Gamma = (gamma-1)/(gamma+1)
@@ -27,14 +27,14 @@ def sodShock(fileName,fileStoreInfo,t = 0.2,lBC = (1.0,1.0,0,2.5),rBC = (0.1,0.1
     x4 = x1 + u[2]*t
     x5 = x1 + u[3]*t
     x = [x1,x2,x3,x4,x5]
-    
+
     #Getting Data
-    xI = np.linspace(-0.5,0.5,numPts)
-    pD = np.zeros(numPts)
-    rhoD = np.zeros(numPts)
-    uD = np.zeros(numPts)
+    xI = np.linspace(-0.5,0.5,npts)
+    pD = np.zeros(npts)
+    rhoD = np.zeros(npts)
+    uD = np.zeros(npts)
     combList = list()
-    for i in range(numPts):
+    for i in range(npts):
         if(xI[i]<x1):
             rhoD[i] = rho[0]
             pD[i] = p[0]

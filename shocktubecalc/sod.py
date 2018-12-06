@@ -145,7 +145,6 @@ class Calculator:
 
         fact = gm1 / g2 * (c5 / c1) * z / np.sqrt(1. + gp1 / g2 * z)
         fact = (1. - fact) ** (g2 / gm1)
-
         return p1 * fact - p4
 
     def calculate_regions(self):
@@ -184,7 +183,6 @@ class Calculator:
 
         if type(p4) is np.ndarray:
             p4 = p4[0]
-
         # compute post-shock density and velocity
         z = (p4 / p5 - 1.)
         c5 = self.sound_speed(p5, rho5)

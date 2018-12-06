@@ -13,9 +13,9 @@ dataPlot.py - this is used to analyze all the results in a directory.
               update this file appropriately in the file __main__ to change the
               directory and other properties.  
 eulerExact.py - this is the analytical solution of Euler's equations applied
-                to the sodshock tube problem. - Currently not properly functioning  
+                to the sodshock tube problem. - Validated with shocktubecalc
 sodshock.py - this is the analytical solution of the sodshock tube problem  with
-              constant states - Not validated
+              constant states - Currently not functioning
 ### shocktubecalc module
 is a module from PyPi. This is a validated analytical solution to the  
 sodshock tube problem. Used to compare to the numerical solution.  

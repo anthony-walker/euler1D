@@ -15,7 +15,6 @@ import math
 import supportingFiles as sf
 import shocktubecalc as stc
 
-
 #Global variables - Allocation
 gamma = 1.4
 dtdx = 0
@@ -25,7 +24,7 @@ dx = 0
 saveFactor = 10 #Controls number of times to save
 
 # Functions for sod shock problem
-def euler1D(domain,time, g = 1.4, directory = None,aSol = False,ssSol = False):
+def euler1D(domain,time, g = 1.4, directory = None, aSol = False, ssSol = False, PyPiSol = False):
     """Use this method to execute euler1D."""
     #Preliminary Steps
     #Updates Needed Global Variables
@@ -69,18 +68,21 @@ def euler1D(domain,time, g = 1.4, directory = None,aSol = False,ssSol = False):
             eulerSaveStr = dirStr+"/e1"+eStr+".txt"
             sI+=1
             domain.domainToFile(eulerSaveStr,eulerInfo)
-            if (aSol):
+            if (PyPiSol):
                 ss = stc.solve(t = tCurr,**{'npts':dims[0]})
                 ss = ss[2]
                 tDomain = tuple()
-                sodStr = dirStr+"/aSol1"+eStr+".txt"
+                sodStr = dirStr+"/pypiSol1"+eStr+".txt"
                 for x in range(len(ss['rho'])):
                     e = sf.eqnState(ss['p'][x],ss['rho'][x],ss['u'][x],gamma)
                     tDomain+=(np.array([ss['p'][x],ss['rho'][x],ss['u'][x],e]),)
                 sf.analytSolFile(tDomain,sodStr,eulerInfo)
+            if(aSol):
+                eulEStr = dirStr+"/eESol1"+eStr+".txt"
+                sf.eulerExact(eulEStr,eulerInfo,tCurr,npts = dims[0])
             if(ssSol):
                 sodStr = dirStr+"/ssSol1"+eStr+".txt"
-                sf.sodShock(sodStr,eulerInfo,tCurr,numPts = dims[0])
+                sf.sodShock(sodStr,eulerInfo,tCurr,npts = dims[0])
         tCurr+=time[1]
     print("Calculation Complete...")
 
@@ -273,4 +275,4 @@ if __name__ == "__main__":
     domain.setNodeVals(rightBC,range(int(dims[0]/2),dims[0]),range(dims[1]))
     domain.setNodeVals(leftBC,range(0,int(dims[0]/2)),range(dims[1]))
     time = (0.2,0.001)
-    euler1D(domain,time,aSol= True,ssSol = True)
+    euler1D(domain,time,aSol= True)
