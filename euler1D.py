@@ -24,7 +24,7 @@ dx = 0
 saveFactor = 10 #Controls number of times to save
 
 # Functions for sod shock problem
-def euler1D(domain,time, g = 1.4, directory = None, aSol = False, ssSol = False, PyPiSol = False):
+def euler1D(domain,time, g = 1.4, directory = None, ssSol = False, PyPiSol = False):
     """Use this method to execute euler1D."""
     #Preliminary Steps
     #Updates Needed Global Variables
@@ -68,6 +68,7 @@ def euler1D(domain,time, g = 1.4, directory = None, aSol = False, ssSol = False,
             eulerSaveStr = dirStr+"/e1"+eStr+".txt"
             sI+=1
             domain.domainToFile(eulerSaveStr,eulerInfo)
+            #PyPi solution for validation
             if (PyPiSol):
                 ss = stc.solve(t = tCurr,**{'npts':dims[0]})
                 ss = ss[2]
@@ -77,12 +78,10 @@ def euler1D(domain,time, g = 1.4, directory = None, aSol = False, ssSol = False,
                     e = sf.eqnState(ss['p'][x],ss['rho'][x],ss['u'][x],gamma)
                     tDomain+=(np.array([ss['p'][x],ss['rho'][x],ss['u'][x],e]),)
                 sf.analytSolFile(tDomain,sodStr,eulerInfo)
-            if(aSol):
-                eulEStr = dirStr+"/eESol1"+eStr+".txt"
-                sf.solveAnalytical(eulEStr,eulerInfo,tCurr,npts = dims[0],sol = True)
+            #Analytical Solution of sod shock problem
             if(ssSol):
                 sodStr = dirStr+"/ssSol1"+eStr+".txt"
-                sf.solveAnalytical(sodStr,eulerInfo,tCurr,npts = dims[0],sol = False)
+                sf.sodShock(sodStr,eulerInfo,tCurr,npts = dims[0])
         tCurr+=time[1]
     print("Calculation Complete...")
 
@@ -275,4 +274,4 @@ if __name__ == "__main__":
     domain.setNodeVals(rightBC,range(int(dims[0]/2),dims[0]),range(dims[1]))
     domain.setNodeVals(leftBC,range(0,int(dims[0]/2)),range(dims[1]))
     time = (0.2,0.001)
-    euler1D(domain,time,aSol= True)
+    euler1D(domain,time,ssSol= True)

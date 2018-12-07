@@ -12,10 +12,9 @@ nodeFileGenerator.py - this file can be used to create a new domain text file.
 dataPlot.py - this is used to analyze all the results in a directory.  
               update this file appropriately in the file __main__ to change the
               directory and other properties.  
-eulerExact.py - this is the analytical solution of Euler's equations applied
-                to the sodshock tube problem. - Validated with shocktubecalc
-sodshock.py - this is the analytical solution of the sodshock tube problem  with
-              constant states - Currently not functioning
+sodShock.py - this is the analytical solution of the sodshock tube problem  
+              this solution is validated with the PyPi sodshock calculation
+
 ### shocktubecalc module
 is a module from PyPi. This is a validated analytical solution to the  
 sodshock tube problem. Used to compare to the numerical solution.  
@@ -27,3 +26,5 @@ domain.py - use this file to create a domain from a given text file.
 decompose.py - use this file to decompose the domain if desired.  
 node.py - this file is used by the domain class. Essentially, domain is a
           multidimensional tuple of node objects
+### misc
+This folder contains former code and other files that are no longer in use
