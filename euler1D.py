@@ -79,10 +79,10 @@ def euler1D(domain,time, g = 1.4, directory = None, aSol = False, ssSol = False,
                 sf.analytSolFile(tDomain,sodStr,eulerInfo)
             if(aSol):
                 eulEStr = dirStr+"/eESol1"+eStr+".txt"
-                sf.eulerExact(eulEStr,eulerInfo,tCurr,npts = dims[0])
+                sf.solveAnalytical(eulEStr,eulerInfo,tCurr,npts = dims[0],sol = True)
             if(ssSol):
                 sodStr = dirStr+"/ssSol1"+eStr+".txt"
-                sf.sodShock(sodStr,eulerInfo,tCurr,npts = dims[0])
+                sf.solveAnalytical(sodStr,eulerInfo,tCurr,npts = dims[0],sol = False)
         tCurr+=time[1]
     print("Calculation Complete...")
 
