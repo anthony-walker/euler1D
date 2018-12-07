@@ -28,7 +28,10 @@ class node(object):
         self.values[key] = values
     def __getitem__(self,key):
         return self.values[key]
-
+    def __add__(self,other):
+        nN = node(self.values+other.values,
+            self.nodeID,self.loc[0],self.loc[1],self.loc[2])
+        return nN
 #### Get and Set functions ####
     def getNodeID(self):  # accessor for nodeID
         """Use this method in order to get nodeID."""

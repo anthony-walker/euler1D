@@ -17,11 +17,12 @@ import sys
 import datetime as dt
 import traceback
 import numpy as np
+import copy
 
 class domain(object):  # A function to combine all methods
     """Use this class as an input node tuple for subdomain."""
 #### Standard functions ###
-    def __init__(self,fileStringIn=None,nodeTupleIn=None,domainID=0):
+    def __init__(self,fileStringIn=None,nodeTupleIn=None,domainID=0,tempBool = None):
         """Use this as the class constructor."""
         #The purpose of this is to form a overloaded constructor of sorts
         try:
@@ -33,14 +34,14 @@ class domain(object):  # A function to combine all methods
             elif(isinstance(nodeTupleIn,tuple)):
                 tempBool = False
             else:
-                raise ValueError("ValueError: All values are of type None.")
+                pass
+                # raise ValueError("ValueError: All values are of type None.")
         except Warning as tupIgWarn:
             print(tupIgWarn)
             tempBool = True
         except ValueError as vErr:
             print(vErr)
             sys.exit("Halting code execution.")
-            tempBool = None
         finally:
             if tempBool is True:
                 lineNodeTuple = self.NodeTupleGenerator(fileStringIn)
@@ -48,23 +49,25 @@ class domain(object):  # A function to combine all methods
             elif tempBool is False:
                 self.primaryDomain = nodeTupleIn
                 lineNodeTuple = self.convMultiDim1D(self.primaryDomain)
-            #Standard values for all constructors
-            self.lineDomain = lineNodeTuple
-            self.domainID = domainID
-            self.dims = self.findTupleDimensions(lineNodeTuple)
-            ranges = self.findTupleRange(lineNodeTuple)
-            self.xRange = ranges[0]
-            self.yRange = ranges[1]
-            self.zRange = ranges[2]
-    def __iadd__(self,other):
-        """Use this method to add current values to domain values."""
-        pass
+            else: #Allows for empty domain object
+                tempBool = None
+            if tempBool is not None:
+                #Standard values for all constructors
+                self.lineDomain = lineNodeTuple
+                self.domainID = domainID
+                self.dims = self.findTupleDimensions(lineNodeTuple)
+                ranges = self.findTupleRange(lineNodeTuple)
+                self.xRange = ranges[0]
+                self.yRange = ranges[1]
+                self.zRange = ranges[2]
 
     def __setitem__(self,key,item):
         """Use this method to copy domain or node values in assignment."""
         key = self.indexHandling(key)
         if isinstance(item,type(self)):
-            self.copyAttributes(item)
+            newDom = copy.deepcopy(item)
+            self.copyAttributes(newDom)
+            print(self.primaryDomain)
         elif isinstance(item,type(np.array(1))):
             for i in range(key[0].start,key[0].stop+1):
                 for j in range(key[1].start,key[1].stop+1):
@@ -76,6 +79,7 @@ class domain(object):  # A function to combine all methods
 
     def copyAttributes(self,domain):
         """Use this method to copy domain attributes."""
+        self.primaryDomain = domain.primaryDomain
         self.lineDomain = domain.getLineDomain()
         self.domainID = domain.getDomainID()
         self.dims = domain.getDomainDims()
@@ -100,7 +104,14 @@ class domain(object):  # A function to combine all methods
             return returnDomain
         else:
             return returnDomain[0]
-
+    def __add__(self,item):
+        newDom = copy.deepcopy(self)
+        y = 0
+        for x in range(self.dims[0]):
+            for y in range(self.dims[1]):
+                newNode = self.primaryDomain[x][y] + item.primaryDomain[x][y]
+                newDom.primaryDomain[x][y].setValues(newNode[:])
+        return newDom
     def indexHandling(self,index):
         """Use this method to handle indices for get and set item."""
         try:
@@ -134,6 +145,10 @@ class domain(object):  # A function to combine all methods
         for i in range(3-dim):
             index.append(slice(0,0,1))
         return index
+
+    def __iadd__(self,other):
+        """Use this method to add current values to domain values."""
+        pass
 
 #### Node handling functions ####
 

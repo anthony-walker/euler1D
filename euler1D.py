@@ -33,7 +33,7 @@ def euler1D(domain,time, g = 1.4, directory = None, ssSol = False, PyPiSol = Fal
     eulerInfo = documentInfoGeneration()
     #Handling directory & initial domain save
     dirStr = directoryHandler(directory)
-    domain.domainToFile(dirStr+"/e1a.txt",eulerInfo)
+    #domain.domainToFile(dirStr+"/InitialState.txt",eulerInfo) #Saves initial state
     #Determining points to save
     saves = determineSavePts()
     #Other Variables used for data storage
@@ -44,20 +44,14 @@ def euler1D(domain,time, g = 1.4, directory = None, ssSol = False, PyPiSol = Fal
     #Calculation Begins Here
     print("Beginning Calculations...")
     for k in range(timeSteps+1):
-        #RK2 in Time Euler Equation Calculation
-        qHalfStep = euler(0)
-        for i in range(len(qHalfStep)):
-            domain[i+1,0][:] = qHalfStep[i]
-        qStep = euler(1)
-        for i in range(len(qHalfStep)):
-            domain[i+1,0][:] = qHalfStep[i]
+        domain = RK2(euler,domain)
         #Saving Data
         if saves[sI] == k:
             s1 = "%.4f" % tCurr
             print("Current time:"+s1)
             #This is for sorting purposes/data analysis
-            if(97+sI)<=122:
-                eStr = chr(97+sI)
+            if(96+sI)<=122:
+                eStr = chr(96+sI)
             else:
                 if count == 10:
                     count = 0
@@ -84,6 +78,21 @@ def euler1D(domain,time, g = 1.4, directory = None, ssSol = False, PyPiSol = Fal
                 sf.sodShock(sodStr,eulerInfo,tCurr,npts = dims[0])
         tCurr+=time[1]
     print("Calculation Complete...")
+def RK2(fcn,domain):
+    """Use this method to apply RK2 in time."""
+    f = fd.domain()
+    f[:] = domain #Original domain
+    qHalfStep = fcn(0)
+    for i in range(len(qHalfStep)):
+        domain[i+1,0][:] = qHalfStep[i]
+        print(i, qHalfStep[i])
+    qStep = fcn(1)
+    for i in range(len(qHalfStep)):
+        domain[i+1,0][:] = qStep[i]
+        print(i+1, qStep[i])
+    f.printNodes()
+    input()
+    return domain
 
 def euler(step):
     """Use this to solve euler1D."""
@@ -268,10 +277,10 @@ if __name__ == "__main__":
     leftBC = (1.0,1.0,0,2.5)
     rightBC = (0.1,0.125,0,0.25)
     #Domain Creation and Initialization
-    sf.generateNodeFile("textFiles/euler1D.txt", range(0,251), range(0,1))
+    sf.generateNodeFile("textFiles/euler1D.txt", range(0,10), range(0,1))
     domain = fd.domain("textFiles/euler1D.txt")
     dims = domain.getDomainDims()
     domain.setNodeVals(rightBC,range(int(dims[0]/2),dims[0]),range(dims[1]))
     domain.setNodeVals(leftBC,range(0,int(dims[0]/2)),range(dims[1]))
-    time = (0.2,0.001)
+    time = (0.1,0.0001)
     euler1D(domain,time,ssSol= True)

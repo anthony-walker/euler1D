@@ -17,6 +17,8 @@ epsilon = 0
 
 def sodShock(fileName,fileStoreInfo,time = 0.2,lBC = (1.0,1.0,0,2.5),rBC = (0.1,0.125,0,0.25),g = 1.4,npts = 1000):
     """Use this method to determine the analytic solution of sod shock problem."""
+    #Assigning Global variables
+    gVI(g,rBC,lBC,time,npts)
     #Determining states
     statesList = states2and3()
     rho = statesList[0]
@@ -83,7 +85,7 @@ def states2and3(tol = (10**-10)):
         if(not solBool):
             rhSol = scipy.optimize.fsolve(RankineHugoniot, pG, full_output=True)
             p2, infodict, solBool, mesg = rhSol
-            if type(p4) is np.ndarray:
+            if type(p2) is np.ndarray:
                 p2 = p2[0]
         else:
             break
