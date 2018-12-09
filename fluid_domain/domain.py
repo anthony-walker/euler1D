@@ -27,7 +27,6 @@ class domain(object):  # A function to combine all methods
         #The purpose of this is to form a overloaded constructor of sorts
         try:
             if (isinstance(fileStringIn,str) and isinstance(nodeTupleIn,tuple)):
-                print("In if")
                 raise Warning("Warning:tuple ignored in domain generation")
             elif(isinstance(fileStringIn,str)):
                 tempBool = True
@@ -67,7 +66,6 @@ class domain(object):  # A function to combine all methods
         if isinstance(item,type(self)):
             newDom = copy.deepcopy(item)
             self.copyAttributes(newDom)
-            print(self.primaryDomain)
         elif isinstance(item,type(np.array(1))):
             for i in range(key[0].start,key[0].stop+1):
                 for j in range(key[1].start,key[1].stop+1):
@@ -104,7 +102,9 @@ class domain(object):  # A function to combine all methods
             return returnDomain
         else:
             return returnDomain[0]
+
     def __add__(self,item):
+        """Use this method to overload the addition operator."""
         newDom = copy.deepcopy(self)
         y = 0
         for x in range(self.dims[0]):
@@ -112,6 +112,7 @@ class domain(object):  # A function to combine all methods
                 newNode = self.primaryDomain[x][y] + item.primaryDomain[x][y]
                 newDom.primaryDomain[x][y].setValues(newNode[:])
         return newDom
+
     def indexHandling(self,index):
         """Use this method to handle indices for get and set item."""
         try:

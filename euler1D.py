@@ -22,7 +22,7 @@ numsaves = 0
 timeSteps = 0
 dx = 0
 saveFactor = 10 #Controls number of times to save
-
+tempQsp = 0
 # Functions for sod shock problem
 def euler1D(domain,time, g = 1.4, directory = None, ssSol = False, PyPiSol = False):
     """Use this method to execute euler1D."""
@@ -78,6 +78,7 @@ def euler1D(domain,time, g = 1.4, directory = None, ssSol = False, PyPiSol = Fal
                 sf.sodShock(sodStr,eulerInfo,tCurr,npts = dims[0])
         tCurr+=time[1]
     print("Calculation Complete...")
+
 def RK2(fcn,domain):
     """Use this method to apply RK2 in time."""
     f = fd.domain()
@@ -85,13 +86,9 @@ def RK2(fcn,domain):
     qHalfStep = fcn(0)
     for i in range(len(qHalfStep)):
         domain[i+1,0][:] = qHalfStep[i]
-        print(i, qHalfStep[i])
     qStep = fcn(1)
     for i in range(len(qHalfStep)):
         domain[i+1,0][:] = qStep[i]
-        print(i+1, qStep[i])
-    f.printNodes()
-    input()
     return domain
 
 def euler(step):
@@ -118,39 +115,61 @@ def euler(step):
         #Getting reconstructed Q values at interface
         qI = mmdlim(qN,0,i)
         #finding flux
-        fU = flux(qI[0],qI[1])
-        fD = flux(qI[2],qI[3])
-        flx += unmakeQ((qN[2][1:] + dtdx*sc*(fU-fD),))
+        # print("Current point",i)
+        # print("*---------------------------------*")
+        # print("Nodes:",ns)
+        # print("Qn:",qN)
+        # print("Qi:",qI)
+        flx += unmakeQ((qN[2][1:]+dtdx*sc*(flux(qI[0],qI[1])+spectral(qI[0],qI[1])
+              -flux(qI[2],qI[3])-spectral(qI[2],qI[3])),))
+        # print("Qsp:",tempQsp)
+        # print("fU:",fU)
+        # print("Qsp:",tempQsp)
+        # print("fD:",fD)
+        # print("*---------------------------------*")
+        # input()
+
     return flx
 
 def flux(qL,qR):
     """Use this method to determine the flux."""
     #Preallocation
     f = np.zeros(len(qL))
-    qSP = np.zeros(len(qL))
-    half = 0.5
     #getting principal node values
+    rhoL = qL[0]
+    rhoR = qR[0]
     rootrhoL = np.sqrt(qL[0])
     rootrhoR = np.sqrt(qR[0])
     uL = qL[1]/qL[0]
     uR = qR[1]/qR[0]
     eL = qL[2]/qL[0]
     eR = qR[2]/qR[0]
+    #flux
+    pL = eqnState(rhoL,uL,eL)
+    pR = eqnState(rhoR,uR,eR)
+    f[0] = rhoL*uL+rhoR*uR
+    f[1] = rhoL*uL**2+pL+rhoR*uR**2+pR
+    f[2] = uL*(rhoL*eL+pL)+uR*(rhoR*eR+pR)
+    return f
 
+def spectral(qL,qR):
+    """Use this method to calculate the spectral values"""
+    #Preallocation
+    qSP = np.zeros(len(qL))
     #spectral
+    uL = qL[1]/qL[0]
+    uR = qR[1]/qR[0]
+    eL = qL[2]/qL[0]
+    eR = qR[2]/qR[0]
+    rootrhoL = np.sqrt(qL[0])
+    rootrhoR = np.sqrt(qR[0])
     qSP[0] = rootrhoL*rootrhoR
-    qSP[1] = (rootrhoL*uL+rootrhoR*uR)/(rootrhoL+rootrhoR)
-    qSP[2] = (rootrhoL*eL+rootrhoR*eR)/(rootrhoL+rootrhoR)
+    denom = 1/(rootrhoL+rootrhoR)
+    qSP[1] = (rootrhoL*uL+rootrhoR*uR)*denom
+    qSP[2] = (rootrhoL*eL+rootrhoR*eR)*denom
     pSP = eqnState(qSP[0],qSP[1],qSP[2])
     rSP = np.sqrt(gamma*pSP/qSP[0])+abs(qSP[1])
-
-    #flux
-    pL = eqnState(qL[0],uL,eL)
-    pR = eqnState(qR[0],uR,eR)
-    f[0] = half*(qL[1]+qR[1]+rSP*(qL[0]-qR[0]))
-    f[1] = half*(qL[0]*uL**2+pL+qR[0]*uR**2+pR+rSP*(qL[1]-qR[1]))
-    f[2] = half*(uL*(qL[2]+pL)+uR*(qR[2]+pR)+rSP*(qL[2]-qR[2]))
-    return f
+    return rSP*(qL-qR)
 
 def eqnState(rho,u,e):
     """Use this method to solve for pressure."""
@@ -201,6 +220,7 @@ def unmakeQ(Q):
 def makeQ(nodes):
     """Use this method to obtain Q values from nodeValues."""
     Q = tuple()
+    #P, rho, rho*u, rho*e
     for x in nodes:
         Q += (np.array([x[0],x[1],x[1]*x[2],x[1]*x[3]]),)
     return Q
@@ -277,10 +297,10 @@ if __name__ == "__main__":
     leftBC = (1.0,1.0,0,2.5)
     rightBC = (0.1,0.125,0,0.25)
     #Domain Creation and Initialization
-    sf.generateNodeFile("textFiles/euler1D.txt", range(0,10), range(0,1))
+    sf.generateNodeFile("textFiles/euler1D.txt", range(0,100), range(0,1))
     domain = fd.domain("textFiles/euler1D.txt")
     dims = domain.getDomainDims()
     domain.setNodeVals(rightBC,range(int(dims[0]/2),dims[0]),range(dims[1]))
     domain.setNodeVals(leftBC,range(0,int(dims[0]/2)),range(dims[1]))
-    time = (0.1,0.0001)
+    time = (0.1,0.001)
     euler1D(domain,time,ssSol= True)
