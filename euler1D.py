@@ -44,7 +44,7 @@ def euler1D(domain,time, g = 1.4, directory = None, ssSol = False, PyPiSol = Fal
     #Calculation Begins Here
     print("Beginning Calculations...")
     for k in range(timeSteps+1):
-        domain = RK2(euler,domain)
+        domain = RK2(fpfv,domain)
         #Saving Data
         if saves[sI] == k:
             s1 = "%.4f" % tCurr
@@ -83,24 +83,39 @@ def RK2(fcn,domain):
     """Use this method to apply RK2 in time."""
     f = fd.domain()
     f[:] = domain #Original domain
-    qHalfStep = fcn(0)
+    qHalfStep = fcn(domain)
     for i in range(len(qHalfStep)):
-        domain[i+1,0][:] = qHalfStep[i]
-    qStep = fcn(1)
-    for i in range(len(qHalfStep)):
-        domain[i+1,0][:] = qStep[i]
+        qHS = makeQ((domain[i+1,0][:],))
+        qHS = qHS[1:]+dtdx*qHalfStep[i]*0.5
+        nVS = unmakeQ((qHS,))
+        domain[i+1,0][:] = nVS
+    qStep = fcn(domain)
+    for i in range(len(qStep)):
+        qS = makeQ((domain[i+1,0][:],))
+        qS = qS[1:]+dtdx*qStep[i]
+        nVS = unmakeQ((qS,))
+        domain[i+1,0][:] = nVS
     return domain
 
-def euler(step):
+def flux(qL,qR):
+    """Use this method to determine the flux."""
+    #Preallocation
+    f = np.zeros(len(qL))
+    #getting principal node values
+    uL = qL[1]/qL[0]
+    uR = qR[1]/qR[0]
+    #flux
+    pL = eqnState(qL[0],uL,qL[2]/qL[0])
+    pR = eqnState(qR[0],uR,qR[2]/qR[0])
+    f[0] = qL[1]+qR[1]
+    f[1] = qL[1]*uL+pL+qR[1]*uR+pR
+    f[2] = qL[2]*uL+pL*uL+qR[2]*uR+pR*uR
+    return f
+
+def fpfv(domain):
     """Use this to solve euler1D."""
     j=0 #This is for 2D
     flx = tuple()
-    if step:
-        sc = 1/2
-        step = 0
-    else:
-        sc = 1/4
-        step = 1
     for i in range(1,dims[0]-1):
         #Getting points from domain
         P = domain[i,j][:]
@@ -115,42 +130,9 @@ def euler(step):
         #Getting reconstructed Q values at interface
         qI = mmdlim(qN,0,i)
         #finding flux
-        # print("Current point",i)
-        # print("*---------------------------------*")
-        # print("Nodes:",ns)
-        # print("Qn:",qN)
-        # print("Qi:",qI)
-        flx += unmakeQ((qN[2][1:]+dtdx*sc*(flux(qI[0],qI[1])+spectral(qI[0],qI[1])
-              -flux(qI[2],qI[3])-spectral(qI[2],qI[3])),))
-        # print("Qsp:",tempQsp)
-        # print("fU:",fU)
-        # print("Qsp:",tempQsp)
-        # print("fD:",fD)
-        # print("*---------------------------------*")
-        # input()
-
+        flx += (0.5*(flux(qI[0],qI[1])+spectral(qI[0],qI[1])
+              -flux(qI[2],qI[3])-spectral(qI[2],qI[3])),)
     return flx
-
-def flux(qL,qR):
-    """Use this method to determine the flux."""
-    #Preallocation
-    f = np.zeros(len(qL))
-    #getting principal node values
-    rhoL = qL[0]
-    rhoR = qR[0]
-    rootrhoL = np.sqrt(qL[0])
-    rootrhoR = np.sqrt(qR[0])
-    uL = qL[1]/qL[0]
-    uR = qR[1]/qR[0]
-    eL = qL[2]/qL[0]
-    eR = qR[2]/qR[0]
-    #flux
-    pL = eqnState(rhoL,uL,eL)
-    pR = eqnState(rhoR,uR,eR)
-    f[0] = rhoL*uL+rhoR*uR
-    f[1] = rhoL*uL**2+pL+rhoR*uR**2+pR
-    f[2] = uL*(rhoL*eL+pL)+uR*(rhoR*eR+pR)
-    return f
 
 def spectral(qL,qR):
     """Use this method to calculate the spectral values"""
@@ -215,6 +197,9 @@ def unmakeQ(Q):
         P = eqnState(tA[0],tA[1],tA[2])
         tA = np.insert(tA,0,P)
         nV += (tA,)
+    if len(nV) == 1:
+        nV = nV[0]
+
     return nV
 
 def makeQ(nodes):
@@ -223,6 +208,8 @@ def makeQ(nodes):
     #P, rho, rho*u, rho*e
     for x in nodes:
         Q += (np.array([x[0],x[1],x[1]*x[2],x[1]*x[3]]),)
+    if len(Q) == 1:
+        Q = Q[0]
     return Q
 
 def boundaryHandler(pDomain,indi,indj,addition):
@@ -297,10 +284,10 @@ if __name__ == "__main__":
     leftBC = (1.0,1.0,0,2.5)
     rightBC = (0.1,0.125,0,0.25)
     #Domain Creation and Initialization
-    sf.generateNodeFile("textFiles/euler1D.txt", range(0,100), range(0,1))
+    sf.generateNodeFile("textFiles/euler1D.txt", range(0,511), range(0,1))
     domain = fd.domain("textFiles/euler1D.txt")
     dims = domain.getDomainDims()
     domain.setNodeVals(rightBC,range(int(dims[0]/2),dims[0]),range(dims[1]))
     domain.setNodeVals(leftBC,range(0,int(dims[0]/2)),range(dims[1]))
-    time = (0.1,0.001)
+    time = (0.1,0.0001)
     euler1D(domain,time,ssSol= True)
