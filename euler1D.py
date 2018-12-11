@@ -284,7 +284,7 @@ if __name__ == "__main__":
     leftBC = (1.0,1.0,0,2.5)
     rightBC = (0.1,0.125,0,0.25)
     #Domain Creation and Initialization
-    sf.generateNodeFile("textFiles/euler1D.txt", range(0,511), range(0,1))
+    sf.generateNodeFile("textFiles/euler1D.txt", range(0,251), range(0,1))
     domain = fd.domain("textFiles/euler1D.txt")
     dims = domain.getDomainDims()
     domain.setNodeVals(rightBC,range(int(dims[0]/2),dims[0]),range(dims[1]))
