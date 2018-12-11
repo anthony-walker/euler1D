@@ -5,7 +5,8 @@ This repository contains python files to execute an implementation of the sod sh
 The main files used in this implementation of euler1D is
 #### euler1D.py
 Executing this file as is will execute the sample problem setup with the sample
-domain setup found in the euler1D.txt file.  
+domain setup found in the euler1D.txt file. This solution has been validated  
+with the analytical solution.  
 
 ## Supporting files and modules
 nodeFileGenerator.py - this file can be used to create a new domain text file.  

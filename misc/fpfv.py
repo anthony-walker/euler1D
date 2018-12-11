@@ -108,7 +108,6 @@ def makeND(Qargs):
         nodeData[i,:] = np.array([P[i],x[0],x[1]/x[0],x[2]/x[0]])
         i+=1
     return nodeData
-
 def documentInfoGeneration():
     """Use this to generate documentation heading information"""
     eulerInfo = list()

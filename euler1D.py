@@ -9,33 +9,40 @@
 #Import Statements
 import fluid_domain as fd
 import numpy as np
-import time as tP
+import time as tm
 import os
 import math
 import supportingFiles as sf
 import shocktubecalc as stc
+import datetime as dt
 
+#Global Variables
+startTime = tm.time() #run time start
+print("Starting time: ", str(dt.datetime.now()))
 #Global variables - Allocation
-gamma = 1.4
-dtdx = 0
-numsaves = 0
-t = 0
-dx = 0
+gamma = 1.4 #heat capacity ratio
+dtdx = 0 #dt/dx
+numsaves = 0 #Number of saves
+t = 0 #End time and time step size
+dx = 0 #Step SizeStarting
 saveFactor = 10 #Controls number of times to save
-mG = 0
+mG = 0 #Gamma -1
+
 # Functions for sod shock problem
 def euler1D(domain,time, g = 1.4, directory = None,**kwargs):
     """Use this method to execute euler1D."""
-    #Preliminary Steps
     #Updates Needed Global Variables
     globalVariableHandler(gamma,domain.dx,time)
     #Creation of document information/heading
     eulerInfo = documentInfoGeneration()
-    #Handling directory & initial domain save
-    dirStr = directoryHandler(directory)
     #Determining points to save
     saves = determineSavePts()
-    kwargs["saves"] = saves
+    #Handling directory & initial domain save
+    dirStr = directoryHandler(directory)
+
+    kwargs['saves'] = saves
+    kwargs['eulerInfo'] = eulerInfo
+    kwargs['dirStr'] = dirStr
     #Other Variables used for data storage
     #Temporary conversion of domain to np.array
     data = np.zeros((dims[0],len(domain.primaryDomain[0][0][:])))
@@ -45,20 +52,21 @@ def euler1D(domain,time, g = 1.4, directory = None,**kwargs):
     print("Beginning Calculations...")
     RK2(fv5p,data,**kwargs)
     print("Calculation Complete...")
+    print("Runtime: ",(tm.time()-startTime)/60," minutes.")
+    print("Ending time: ", str(dt.datetime.now()))
+    askToPlot(dirStr+"/",eulerInfo)
 
+### Functions Crucial To Calculation ###
 def RK2(fcn,data,**kwargs):
     """Use this method to solve a function with RK2 in time."""
+    #Preliminary Steps
     tCurr = 0
     sI = 1
     count = 0
     multipler = 1
     tEnd = t[0]
     dt = t[1]
-
-    if 'save' in kwargs:
-        save = True
-    else:
-        save = False
+    step = 0
     #Making Q from node Data
     Q = makeQ(data[:,1:])
     #Creating pressure vector
@@ -67,14 +75,14 @@ def RK2(fcn,data,**kwargs):
         QS = Q+dtdx*0.5*fcn(Q,P)
         P = eqnStateQ(QS[:,0],QS[:,1],QS[:,2])
         Q = Q+dtdx*fcn(QS,P)
-        if "save" in kwargs:
-            print(tCurr)
-            sI,count,multipler,eulerInfo,eStr = saveDataUpdater(sI,count,multipler,tCurr,eulerInfo)
-            kwargs["data"] = makeND(Q)
-            print(kwargs)
-            input()
-            dataSave(sI,count,multipler,eulerInfo,eStr,**kwargs,)
         tCurr+=dt
+        step+=1
+        #Saving data if desired
+        if sI < len(kwargs['saves']): #Extra loop as a precaution
+            if kwargs["save"] and kwargs['saves'][sI]==step:
+                sI,count,multipler,kwargs['eulerInfo'],kwargs["eStr"] = saveDataUpdater(sI,count,multipler,tCurr,kwargs['eulerInfo'])
+                kwargs["data"] = makeND(Q)
+                dataSave(tCurr,**kwargs)
     return makeND(Q)
 
 #Numerical Solution
@@ -164,7 +172,7 @@ def makeND(Qargs):
     P = eqnStateQ(Qargs[:,0],Qargs[:,1],Qargs[:,2])
     i = 0
     for x in Qargs:
-        nodeData[i,:] = np.array([P[i],x[0],x[1]/x[0],x[2]/x[0]])
+        nodeData[i,:] = np.array([P[i],x[0],x[1]/x[0],x[2]])
         i+=1
     return nodeData
 
@@ -186,22 +194,26 @@ def analyticalSol(dirStr,eStr,eulerInfo,tCurr):
     sodStr = dirStr+"/ssSol1"+eStr+".txt"
     sf.sodShock(sodStr,eulerInfo,tCurr,npts = dims[0])
 
+### Functions Not Crucial To Calculation ###
 #Function to save appropriate data
-def dataSave(**kwargs):
-    if saves[sI] == tCurr:
-        if 'numerical' in kwargs:
-            eulerSaveStr = dirStr+"/e1"+eStr+".txt"
-            sf.SolFile(kwargs['data'],eulerSaveStr,eulerInfo)
-        if 'analytical' in kwargs:
-            analyticalSol(dirStr,eStr,eulerInfo,tCurr)
-        if 'pypi' in kwargs:
+def dataSave(tCurr,**kwargs):
+    """Use this method to save all data."""
+    dirStr = kwargs["dirStr"]
+    eulerInfo = kwargs["eulerInfo"]
+    eStr = kwargs['eStr']
+    if kwargs["numerical"]:
+        eulerSaveStr = dirStr+"/e1"+eStr+".txt"
+        sf.SolFile(kwargs["data"],eulerSaveStr,eulerInfo)
+    if kwargs["analytical"]:
+        analyticalSol(dirStr,eStr,eulerInfo,tCurr)
+    if kwargs["pypi"]:
             PyPiSol(dirStr,eStr,eulerInfo,tCurr)
 
 #Function to update saving data
 def saveDataUpdater(sI,count,multipler,tCurr,eulerInfo):
     """Use this method to update strings and data for saving."""
-    print("Current time:"+s1)
     s1 = "%.4f" % tCurr
+    print("Saving Current time:"+s1,"...")
     #This is for sorting purposes/data analysis
     if(96+sI)<=122:
         eStr = chr(96+sI)
@@ -218,6 +230,7 @@ def saveDataUpdater(sI,count,multipler,tCurr,eulerInfo):
 #Determine points to save data
 def determineSavePts():
     """Use this method to determine which time indices to save."""
+    print("Determining times to save...")
     timeSteps = time[0]/time[1]
     if timeSteps%10>0:
         timeSteps = int(np.ceil(timeSteps))
@@ -246,6 +259,7 @@ def directoryHandler(directory = None):
 #Handles Global Variables
 def globalVariableHandler(g,dX,time):
     """Use this method to update global variables before calculation."""
+    print("Handling Global Variables...")
     global gamma
     gamma = g #Allows changings of gamma if =desired
     global mG
@@ -267,7 +281,7 @@ def globalVariableHandler(g,dX,time):
 #Creates document header
 def documentInfoGeneration():
     """Use this to generate documentation heading information"""
-    """Use this to generate documentation heading information"""
+    print("Generating Document Information...")
     eulerInfo = list()
     eulerInfo.append("Euler test case, time = 0")
     eulerInfo.append("dx = "+str(dx))
@@ -276,17 +290,27 @@ def documentInfoGeneration():
     eulerInfo.append("[Pressure]   [Density]    [Velocity]    [Internal Energy]")
     return eulerInfo
 
+def askToPlot(dirStr,eulerInfo):
+    """Use this function to ask if the user wants to plot data."""
+    pB = input("Would you like to plot the data (Y/N)? ")
+    if pB is 'Y':
+        labels = ["Pressure","Density","Velocity","Internal Energy"]
+        lSkip = len(eulerInfo)+1
+        sf.dataPlot(labels,lSkip,dirStr)
+
 if __name__ == "__main__":
     #Problem set up - Sod Shock Problem
     #Initial and Boundary conditions
     leftBC = (1.0,1.0,0,2.5)
     rightBC = (0.1,0.125,0,2)
     #Domain Creation and Initialization
-    sf.generateNodeFile("textFiles/euler1D.txt", range(0,251), range(0,1))
+    sf.generateNodeFile("textFiles/euler1D.txt", range(0,1001), range(0,1))
     domain = fd.domain("textFiles/euler1D.txt")
     dims = domain.getDomainDims()
     domain.setNodeVals(rightBC,range(int(dims[0]/2),dims[0]),range(dims[1]))
     domain.setNodeVals(leftBC,range(0,int(dims[0]/2)),range(dims[1]))
-    time = (0.1,0.0001)
-    kwgs = {'save',True,'numerical',True,'analytical',True,'pypi',True}
-    euler1D(domain,time,kwargs = kwgs)
+    time = (0.3,0.00001)
+    print("time end: ",time[0]," dt: ",time[1])
+    print("dx: ", domain.dx)
+    kwgs = {"save":True,"numerical":True,"analytical":True,"pypi":False}
+    euler1D(domain,time,**kwgs)
