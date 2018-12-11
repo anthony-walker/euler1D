@@ -19,6 +19,8 @@ def RK2(fcn,data,dt,dx,t):
         P = eqnState(QS[:,0],QS[:,1]/QS[:,0],QS[:,2]/QS[:,0])
         Q = Q+dt/dx*fcn(QS,P)
         tCurr+=dt
+        print(makeND(Q))
+        input()
     return makeND(Q)
 
 def fv5p(Q,P):
