@@ -19,8 +19,8 @@ def RK2(fcn,data,dt,dx,t):
         P = eqnState(QS[:,0],QS[:,1]/QS[:,0],QS[:,2]/QS[:,0])
         Q = Q+dt/dx*fcn(QS,P)
         tCurr+=dt
-        print(makeND(Q))
-        input()
+        # print(makeND(Q))
+        # input()
     return makeND(Q)
 
 def fv5p(Q,P):
@@ -40,6 +40,7 @@ def fv5p(Q,P):
         Flux[x-2,:] -= makeFlux(QLp,QRp)
         Flux[x-2,:] += spectral(QLm,QRm)
         Flux[x-2,:] -= spectral(QLp,QRp)
+        Flux[x-2,:] = Flux[x-2,:]*0.5
     return Flux
 
 #Step 1, make Q from node data
