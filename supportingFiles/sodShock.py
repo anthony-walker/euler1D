@@ -62,7 +62,7 @@ def sodShock(fileName,fileStoreInfo,time = 0.2,lBC = (1.0,1.0,0,2.5),rBC = (0.1,
             uD[i] = rbc[2]
         eTemp = eqnState(pD[i],rhoD[i],uD[i],gamma)
         combList.append([pD[i],rhoD[i],uD[i],eTemp])
-    analytSolFile(combList,fileName,fileStoreInfo)
+    SolFile(combList,fileName,fileStoreInfo)
 
 def eqnState(p,rho,u,gamma):
     """Use this method to solve for pressure."""
@@ -154,7 +154,7 @@ def gVI(g,rBC,lBC,time,npts):
     global cR
     cR = np.sqrt(gamma*rbc[0]/rbc[1])
 
-def analytSolFile(data,fileName = None,extraInfo = None):
+def SolFile(data,fileName = None,extraInfo = None):
     """Use this method to write values to a file."""
     if(fileName is None):
         fileName = input("Enter file name and extension. ")

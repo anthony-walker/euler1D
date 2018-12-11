@@ -92,67 +92,7 @@ def spectral(QL,QR):
     pSP = eqnStateQ(Qsp[0],Qsp[0]*Qsp[1],Qsp[0]*Qsp[2])
     rSP = np.sqrt(gamma*pSP/Qsp[0])+abs(Qsp[1])
     Q_rs = rSP*(QL-QR)
-    return Q_rsdef RK2(fcn,domain):
-    """Use this method to apply RK2 in time."""
-    f = fd.domain()
-    f[:] = domain #Original domain
-    qHalfStep = fcn(domain)
-    for i in range(len(qHalfStep)):
-        qHS = makeQ((domain[i+1,0][:],))
-        qHS = qHS[1:]+dtdx*qHalfStep[i]*0.5
-        nVS = unmakeQ((qHS,))
-        domain[i+1,0][:] = nVS
-    qStep = fcn(domain)
-    for i in range(len(qStep)):
-        qS = makeQ((domain[i+1,0][:],))
-        qS = qS[1:]+dtdx*qStep[i]
-        nVS = unmakeQ((qS,))
-        domain[i+1,0][:] = nVS
-    return domain
-
-def flux(qL,qR):
-    """Use this method to determine the flux."""
-    #Preallocation
-    f = np.zeros(len(qL))
-    #getting principal node values
-    uL = qL[1]/qL[0]
-    uR = qR[1]/qR[0]
-    #flux
-    pL = eqnState(qL[0],uL,qL[2]/qL[0])
-    pR = eqnState(qR[0],uR,qR[2]/qR[0])
-    f[0] = qL[1]+qR[1]
-    f[1] = qL[1]*uL+pL+qR[1]*uR+pR
-    f[2] = qL[2]*uL+pL*uL+qR[2]*uR+pR*uR
-    return f
-
-def fpfv(domain):
-    """Use this to solve euler1D."""
-    j=0 #This is for 2D
-    flx = tuple()
-    global tSum
-    for i in range(1,dims[0]-1):
-        #Getting points from domain
-        P = domain[i,j][:]
-        W = boundaryHandler(domain,i,j,-1)
-        WW = boundaryHandler(domain,i,j,-2)
-        E = boundaryHandler(domain,i,j,1)
-        EE = boundaryHandler(domain,i,j,2)
-        #nodes
-        ns = (WW,W,P,E,EE,)
-        #makeQ
-        qN = makeQ(ns)
-        #Getting reconstructed Q values at interface
-        qI = mmdlim(qN,0,i)
-        #finding flux
-        flx += (0.5*(flux(qI[0],qI[1])+spectral(qI[0],qI[1])
-              -flux(qI[2],qI[3])-spectral(qI[2],qI[3])),)
-    return flx
-
-def spectral(qL,qR):
-    """Use this method to calculate the spectral values"""
-    #Preallocation
-    qSP = np.zeros(len(qL))
-    #spectral
+    return Q_rs
 #The equation of state using Q variables
 def eqnStateQ(r,rU,rE):
     """Use this method to solve for pressure."""

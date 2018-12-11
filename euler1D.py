@@ -19,13 +19,12 @@ import shocktubecalc as stc
 gamma = 1.4
 dtdx = 0
 numsaves = 0
-timeSteps = 0
+t = 0
 dx = 0
 saveFactor = 10 #Controls number of times to save
-tempQsp = 0
-tSum = 0
+mG = 0
 # Functions for sod shock problem
-def euler1D(domain,time, g = 1.4, directory = None, ssSol = False, PyPiSol = False):
+def euler1D(domain,time, g = 1.4, directory = None,**kwargs):
     """Use this method to execute euler1D."""
     #Preliminary Steps
     #Updates Needed Global Variables
@@ -34,204 +33,196 @@ def euler1D(domain,time, g = 1.4, directory = None, ssSol = False, PyPiSol = Fal
     eulerInfo = documentInfoGeneration()
     #Handling directory & initial domain save
     dirStr = directoryHandler(directory)
-    #domain.domainToFile(dirStr+"/InitialState.txt",eulerInfo) #Saves initial state
     #Determining points to save
     saves = determineSavePts()
+    kwargs["saves"] = saves
     #Other Variables used for data storage
+    #Temporary conversion of domain to np.array
+    data = np.zeros((dims[0],len(domain.primaryDomain[0][0][:])))
+    for x in range(len(data)):
+        data[x,:] = domain.primaryDomain[x][0][:]
+    #Calculation Begins Here
+    print("Beginning Calculations...")
+    RK2(fv5p,data,**kwargs)
+    print("Calculation Complete...")
+
+def RK2(fcn,data,**kwargs):
+    """Use this method to solve a function with RK2 in time."""
     tCurr = 0
     sI = 1
     count = 0
     multipler = 1
+    tEnd = t[0]
+    dt = t[1]
 
-    #Calculation Begins Here
-    print("Beginning Calculations...")
-    for k in range(timeSteps+1):
+    if 'save' in kwargs:
+        save = True
+    else:
+        save = False
+    #Making Q from node Data
+    Q = makeQ(data[:,1:])
+    #Creating pressure vector
+    P = data[:,0]
+    while tCurr <= tEnd:
+        QS = Q+dtdx*0.5*fcn(Q,P)
+        P = eqnStateQ(QS[:,0],QS[:,1],QS[:,2])
+        Q = Q+dtdx*fcn(QS,P)
+        if "save" in kwargs:
+            print(tCurr)
+            sI,count,multipler,eulerInfo,eStr = saveDataUpdater(sI,count,multipler,tCurr,eulerInfo)
+            kwargs["data"] = makeND(Q)
+            print(kwargs)
+            input()
+            dataSave(sI,count,multipler,eulerInfo,eStr,**kwargs,)
+        tCurr+=dt
+    return makeND(Q)
 
-        domain = RK2(fpfv,domain)
+#Numerical Solution
+def fv5p(Q,P):
+    """Use this 5 point finite volume method to solve the euler equations."""
+    #Creating flux array
+    Flux = np.zeros((len(Q),len(Q[1,:])))
+    #Setting up loop to span entire domain except end points
+    for x in range(2,len(Q)-2):
+        #Q on the left side of the minus 1/2 interface
+        QLm = limiter(Q[x-1],Q[x],Q[x-1],(P[x]-P[x-1]),(P[x-1]-P[x-2]))
+        #Q on the right side of the minus 1/2 interface
+        QRm = limiter(Q[x],Q[x-1],Q[x],(P[x]-P[x-1]),(P[x+1]-P[x]))
+        #Q on the left side of the plus 1/2 interface
+        QLp = limiter(Q[x],Q[x+1],Q[x],(P[x+1]-P[x]),(P[x]-P[x-1]))
+        #Q on the right side of the plus 1/2 interface
+        QRp = limiter(Q[x+1],Q[x],Q[x+1],(P[x+1]-P[x]),(P[x+2]-P[x+1]))
+        #Getting Flux
+        Flux[x,:] += makeFlux(QLm,QRm)
+        Flux[x,:] -= makeFlux(QLp,QRp)
+        Flux[x,:] += spectral(QLm,QRm)
+        Flux[x,:] -= spectral(QLp,QRp)
+        Flux[x,:] = Flux[x,:]*0.5
+    return Flux
 
+#Step 1, make Q from node data
+def makeQ(Nargs):
+    """Use this method to make Q."""
+    dim1 = len(Nargs)
+    dim2 = len(Nargs[1,:])
+    Q = np.zeros((dim1,dim2))
+    k = 0
+    for i in Nargs:
+        Q[k,:] = np.array([i[0],i[1]*i[0],i[0]*i[2]])
+        k +=1
+    return Q
 
-        #Saving Data
-        if saves[sI] == k:
-            s1 = "%.4f" % tCurr
-            print("Current time:"+s1)
-            #This is for sorting purposes/data analysis
-            if(96+sI)<=122:
-                eStr = chr(96+sI)
-            else:
-                if count == 10:
-                    count = 0
-                    multipler += 1
-                eStr = chr(122)*multipler+str(count)
-                count+=1
-            eulerInfo[0] = ("Euler test case, time = "+s1)
-            eulerSaveStr = dirStr+"/e1"+eStr+".txt"
-            sI+=1
-            domain.domainToFile(eulerSaveStr,eulerInfo)
-            #PyPi solution for validation
-            if (PyPiSol):
-                ss = stc.solve(t = tCurr,**{'npts':dims[0]})
-                ss = ss[2]
-                tDomain = tuple()
-                sodStr = dirStr+"/pypiSol1"+eStr+".txt"
-                for x in range(len(ss['rho'])):
-                    e = sf.eqnState(ss['p'][x],ss['rho'][x],ss['u'][x],gamma)
-                    tDomain+=(np.array([ss['p'][x],ss['rho'][x],ss['u'][x],e]),)
-                sf.analytSolFile(tDomain,sodStr,eulerInfo)
-            #Analytical Solution of sod shock problem
-            if(ssSol):
-                sodStr = dirStr+"/ssSol1"+eStr+".txt"
-                sf.sodShock(sodStr,eulerInfo,tCurr,npts = dims[0])
-        tCurr+=time[1]
-    print("Calculation Complete...")
+#Step 2, get reconstructed values of Q at the interfaces
+def limiter(Q1,Q2,Q3,num,denom):
+    """Use this method to apply the minmod limiter."""
+    if (num > 0 and denom > 0) or (num < 0 and denom < 0):
+        Q_r = Q1+min(num/denom,1)/2*(Q2-Q3)
+    else:
+        Q_r = Q1
+    return Q_r
 
-def RK2(fcn,domain):
-    """Use this method to apply RK2 in time."""
-    f = fd.domain()
-    f[:] = domain #Original domain
-    qHalfStep = fcn(domain)
-    for i in range(len(qHalfStep)):
-        qHS = makeQ((domain[i+1,0][:],))
-        qHS = qHS[1:]+dtdx*qHalfStep[i]*0.5
-        nVS = unmakeQ((qHS,))
-        domain[i+1,0][:] = nVS
-    qStep = fcn(domain)
-    for i in range(len(qStep)):
-        qS = makeQ((domain[i+1,0][:],))
-        qS = qS[1:]+dtdx*qStep[i]
-        nVS = unmakeQ((qS,))
-        domain[i+1,0][:] = nVS
-    return domain
+#Step 3, make the flux
+def makeFlux(QL,QR):
+    """Use this method to make Q."""
+    uL = QL[1]/QL[0]
+    uR = QR[1]/QR[0]
+    PL = eqnStateQ(QL[0],QL[1],QL[2])
+    FL = np.array([QL[1],QL[1]*uL+PL,(QL[2]+PL)*uL])
+    PR = eqnStateQ(QR[0],QR[1],QR[2])
+    FR = np.array([QR[1],QR[1]*uR+PR,(QR[2]+PR)*uR])
+    return FL+FR
 
-def flux(qL,qR):
-    """Use this method to determine the flux."""
-    #Preallocation
-    f = np.zeros(len(qL))
-    #getting principal node values
-    uL = qL[1]/qL[0]
-    uR = qR[1]/qR[0]
-    #flux
-    pL = eqnState(qL[0],uL,qL[2]/qL[0])
-    pR = eqnState(qR[0],uR,qR[2]/qR[0])
-    f[0] = qL[1]+qR[1]
-    f[1] = qL[1]*uL+pL+qR[1]*uR+pR
-    f[2] = qL[2]*uL+pL*uL+qR[2]*uR+pR*uR
-    return f
-
-def fpfv(domain):
-    """Use this to solve euler1D."""
-    j=0 #This is for 2D
-    flx = tuple()
-    global tSum
-    for i in range(1,dims[0]-1):
-        #Getting points from domain
-        P = domain[i,j][:]
-        W = boundaryHandler(domain,i,j,-1)
-        WW = boundaryHandler(domain,i,j,-2)
-        E = boundaryHandler(domain,i,j,1)
-        EE = boundaryHandler(domain,i,j,2)
-        #nodes
-        ns = (WW,W,P,E,EE,)
-        #makeQ
-        qN = makeQ(ns)
-        #Getting reconstructed Q values at interface
-        qI = mmdlim(qN,0,i)
-        #finding flux
-        flx += (0.5*(flux(qI[0],qI[1])+spectral(qI[0],qI[1])
-              -flux(qI[2],qI[3])-spectral(qI[2],qI[3])),)
-    return flx
-
-def spectral(qL,qR):
-    """Use this method to calculate the spectral values"""
-    #Preallocation
-    qSP = np.zeros(len(qL))
-    #spectral
-    uL = qL[1]/qL[0]
-    uR = qR[1]/qR[0]
-    eL = qL[2]/qL[0]
-    eR = qR[2]/qR[0]
-    rootrhoL = np.sqrt(qL[0])
-    rootrhoR = np.sqrt(qR[0])
-    qSP[0] = rootrhoL*rootrhoR
+#Step 4, spectral method
+def spectral(QL,QR):
+    """Use this function to apply the Roe average."""
+    Qsp = np.zeros((len(QL)))
+    rootrhoL = np.sqrt(QL[0])
+    rootrhoR = np.sqrt(QR[0])
+    uL = QL[1]/QL[0]
+    uR = QR[1]/QR[0]
+    eL = QL[2]/QL[0]
+    eR = QR[2]/QR[0]
     denom = 1/(rootrhoL+rootrhoR)
-    qSP[1] = (rootrhoL*uL+rootrhoR*uR)*denom
-    qSP[2] = (rootrhoL*eL+rootrhoR*eR)*denom
-    pSP = eqnState(qSP[0],qSP[1],qSP[2])
-    rSP = np.sqrt(gamma*pSP/qSP[0])+abs(qSP[1])
-    return rSP*(qL-qR)
+    Qsp[0] = (rootrhoL*rootrhoR)
+    Qsp[1] = (rootrhoL*uL+rootrhoR*uR)*denom
+    Qsp[2] = (rootrhoL*eL+rootrhoR*eR)*denom
+    pSP = eqnStateQ(Qsp[0],Qsp[0]*Qsp[1],Qsp[0]*Qsp[2])
+    rSP = np.sqrt(gamma*pSP/Qsp[0])+abs(Qsp[1])
+    Q_rs = rSP*(QL-QR)
+    return Q_rs
 
-def eqnState(rho,u,e):
+#The equation of state using Q variables
+def eqnStateQ(r,rU,rE):
     """Use this method to solve for pressure."""
-    P = (gamma-1)*(rho*e-rho*u*u/2)
+    P = mG*(rE-rU*rU/(r*2))
     return P
 
-def mmdlim(P,limInd,k):
-    """Use this method to get Q with a flux limitor."""
-    #Instance tuples
-    d = tuple()
-    Q = tuple()
-    C = tuple()
-    x = 1 #Handles exponent for pressure ratio
-    c = 0 #Step counter
-    a = 0 #Difference counter
-    #Loop to get diffs and values of Q for minmod 0, 1, 1, 2 as example
-    for i in range(len(P)-1): #Pressure differences for all 5 points
-        d += (P[i+1][limInd]-P[i][limInd],)
-        if(x == 1):
-            x = x*-1
-            C+=(c,)
-            c = c+1
-        else:
-            x = x*-1
-            C+=(c,)
-    P = P[1:len(P)-1] #Adjusting P to be only W, P, E
-    for c in C:
-        if (d[c] < 0 and d[c-1] < 0) or (d[c] > 0 and d[c-1] > 0): #Checking Differences
-            Pr = d[c]/d[c-1]
-            Q += (P[c][1:]+min(Pr**x,1)/2*x*(P[a+1][1:]-P[a][1:]),)
-        else:
-            Q += (P[c][1:],)
-        if x < 0:
-            a += 1
-        x = x*-1
-    return Q
+#Create node data
+def makeND(Qargs):
+    """Use this function to make node data."""
+    nodeData = np.zeros((len(Qargs),len(Qargs[1,:])+1))
+    P = eqnStateQ(Qargs[:,0],Qargs[:,1],Qargs[:,2])
+    i = 0
+    for x in Qargs:
+        nodeData[i,:] = np.array([P[i],x[0],x[1]/x[0],x[2]/x[0]])
+        i+=1
+    return nodeData
 
-def unmakeQ(Q):
-    """Use this method to obtain Q values from nodeValues."""
-    nV = tuple()
-    for x in Q:
-        tA = np.array([x[0],x[1]/x[0],x[2]/x[0]])
-        P = eqnState(tA[0],tA[1],tA[2])
-        tA = np.insert(tA,0,P)
-        nV += (tA,)
-    if len(nV) == 1:
-        nV = nV[0]
+#Analytical Solution Validation
+def PyPiSol(dirStr,eStr,eulerInfo,tCurr):
+    """Use this PyPi, solution to validate."""
+    ss = stc.solve(t = tCurr,**{'npts':dims[0]})
+    ss = ss[2]
+    tDomain = tuple()
+    sodStr = dirStr+"/pypiSol1"+eStr+".txt"
+    for x in range(len(ss['rho'])):
+        e = sf.eqnState(ss['p'][x],ss['rho'][x],ss['u'][x],gamma)
+        tDomain+=(np.array([ss['p'][x],ss['rho'][x],ss['u'][x],e]),)
+    sf.SolFile(tDomain,sodStr,eulerInfo)
 
-    return nV
+#Analytical Solution
+def analyticalSol(dirStr,eStr,eulerInfo,tCurr):
+    """Use this analytical solution to compare to the numerical solution."""
+    sodStr = dirStr+"/ssSol1"+eStr+".txt"
+    sf.sodShock(sodStr,eulerInfo,tCurr,npts = dims[0])
 
-def makeQ(nodes):
-    """Use this method to obtain Q values from nodeValues."""
-    Q = tuple()
-    #P, rho, rho*u, rho*e
-    for x in nodes:
-        Q += (np.array([x[0],x[1],x[1]*x[2],x[1]*x[3]]),)
-    if len(Q) == 1:
-        Q = Q[0]
-    return Q
+#Function to save appropriate data
+def dataSave(**kwargs):
+    if saves[sI] == tCurr:
+        if 'numerical' in kwargs:
+            eulerSaveStr = dirStr+"/e1"+eStr+".txt"
+            sf.SolFile(kwargs['data'],eulerSaveStr,eulerInfo)
+        if 'analytical' in kwargs:
+            analyticalSol(dirStr,eStr,eulerInfo,tCurr)
+        if 'pypi' in kwargs:
+            PyPiSol(dirStr,eStr,eulerInfo,tCurr)
 
-def boundaryHandler(pDomain,indi,indj,addition):
-    """Use this method to obtain point values."""
-    try:
-        if (indi+addition<0):
-            raise Exception("Boundary Value encountered")
-        else:
-            P = pDomain[indi+addition,indj][:]
-    except Exception as e:
-        #print(e,indi-addition,indi+addition)
-        P = pDomain[indi-addition,indj][:]
-    return P
+#Function to update saving data
+def saveDataUpdater(sI,count,multipler,tCurr,eulerInfo):
+    """Use this method to update strings and data for saving."""
+    print("Current time:"+s1)
+    s1 = "%.4f" % tCurr
+    #This is for sorting purposes/data analysis
+    if(96+sI)<=122:
+        eStr = chr(96+sI)
+    else:
+        if count == 10:
+            count = 0
+            multipler += 1
+        eStr = chr(122)*multipler+str(count)
+        count+=1
+    eulerInfo[0] = ("Euler test case, time = "+s1)
+    sI+=1
+    return (sI,count,multipler,eulerInfo,eStr,)
 
+#Determine points to save data
 def determineSavePts():
     """Use this method to determine which time indices to save."""
+    timeSteps = time[0]/time[1]
+    if timeSteps%10>0:
+        timeSteps = int(np.ceil(timeSteps))
+    else:
+        timeSteps = int(timeSteps)
     index = timeSteps/numSaves
     saveInd = tuple()
     for i in range(timeSteps+1):
@@ -239,6 +230,7 @@ def determineSavePts():
             saveInd+=(i,)
     return saveInd
 
+#Creates directory if necessary
 def directoryHandler(directory = None):
     """Use this method to check if a directory exists or make one."""
     if(directory is None):
@@ -251,10 +243,13 @@ def directoryHandler(directory = None):
         os.mkdir(dirStr)
     return dirStr
 
+#Handles Global Variables
 def globalVariableHandler(g,dX,time):
     """Use this method to update global variables before calculation."""
     global gamma
     gamma = g #Allows changings of gamma if =desired
+    global mG
+    mG = gamma -1
     #Stepsize
     global dx
     dx = dX
@@ -265,22 +260,19 @@ def globalVariableHandler(g,dX,time):
     global numSaves
     numSaves = time[0]*saveFactor
     # Time steps
-    global timeSteps
-    timeSteps = time[0]/time[1]
-    if timeSteps%10>0:
-        timeSteps = int(np.ceil(timeSteps))
-    else:
-        timeSteps = int(timeSteps)
+    global t
+    t = time
     return
 
+#Creates document header
 def documentInfoGeneration():
     """Use this to generate documentation heading information"""
     """Use this to generate documentation heading information"""
     eulerInfo = list()
     eulerInfo.append("Euler test case, time = 0")
     eulerInfo.append("dx = "+str(dx))
-    eulerInfo.append("dt = "+str(time[1]))
-    eulerInfo.append("nSteps = "+str(timeSteps))
+    eulerInfo.append("dt = "+str(t[1]))
+    eulerInfo.append("nSteps = "+str(t[0]/t[1]))
     eulerInfo.append("[Pressure]   [Density]    [Velocity]    [Internal Energy]")
     return eulerInfo
 
@@ -296,4 +288,5 @@ if __name__ == "__main__":
     domain.setNodeVals(rightBC,range(int(dims[0]/2),dims[0]),range(dims[1]))
     domain.setNodeVals(leftBC,range(0,int(dims[0]/2)),range(dims[1]))
     time = (0.1,0.0001)
-    euler1D(domain,time,ssSol= True)
+    kwgs = {'save',True,'numerical',True,'analytical',True,'pypi',True}
+    euler1D(domain,time,kwargs = kwgs)
