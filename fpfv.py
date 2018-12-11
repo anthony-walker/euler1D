@@ -3,7 +3,7 @@
 
 import numpy as np
 import supportingFiles as sf
-
+import time
 #Temporary global variables
 gamma = 1.4
 mG = gamma-1
@@ -16,18 +16,13 @@ def RK2(fcn,data,dt,dx,t):
     P = data[:,0]
     while tCurr <= t:
         QS = Q+dt/dx*0.5*fcn(Q,P)
-        P = eqnState(QS[:,0],QS[:,1]/QS[:,0],QS[:,2]/QS[:,0])
+        P = eqnStateQ(QS[:,0],QS[:,1],QS[:,2])
         Q = Q+dt/dx*fcn(QS,P)
         tCurr+=dt
-        # print("*---------*")
-        # i=0
-        # for x in makeND(Q):
-        #     print(i,":",x)
-        #     i+=1
-        # input()
     return makeND(Q)
 
 def fv5p(Q,P):
+    """Use this 5 point finite volume method to solve the euler equations."""
     #Creating flux array
     Flux = np.zeros((len(Q),len(Q[1,:])))
     #Setting up loop to span entire domain except end points
@@ -40,6 +35,7 @@ def fv5p(Q,P):
         QLp = limiter(Q[x],Q[x+1],Q[x],(P[x+1]-P[x]),(P[x]-P[x-1]))
         #Q on the right side of the plus 1/2 interface
         QRp = limiter(Q[x+1],Q[x],Q[x+1],(P[x+1]-P[x]),(P[x+2]-P[x+1]))
+        #Getting Flux
         Flux[x,:] += makeFlux(QLm,QRm)
         Flux[x,:] -= makeFlux(QLp,QRp)
         Flux[x,:] += spectral(QLm,QRm)
@@ -71,11 +67,14 @@ def limiter(Q1,Q2,Q3,num,denom):
 #Step 3, make the flux
 def makeFlux(QL,QR):
     """Use this method to make Q."""
-    PL = eqnState(QL[0],QL[1]/QL[0],QL[2]/QL[0])
-    FL = np.array([QL[1],QL[1]*QL[0]+PL,(QL[2]+PL)*QL[1]/QL[0]])
-    PR = eqnState(QR[0],QR[1]/QR[0],QR[2]/QR[0])
-    FR = np.array([QR[1],QR[1]*QR[0]+PR,(QR[2]+PR)*QR[1]/QR[0]])
+    uL = QL[1]/QL[0]
+    uR = QR[1]/QR[0]
+    PL = eqnStateQ(QL[0],QL[1],QL[2])
+    FL = np.array([QL[1],QL[1]*uL+PL,(QL[2]+PL)*uL])
+    PR = eqnStateQ(QR[0],QR[1],QR[2])
+    FR = np.array([QR[1],QR[1]*uR+PR,(QR[2]+PR)*uR])
     return FL+FR
+
 #Step 4, spectral method
 def spectral(QL,QR):
     """Use this function to apply the Roe average."""
@@ -90,20 +89,80 @@ def spectral(QL,QR):
     Qsp[0] = (rootrhoL*rootrhoR)
     Qsp[1] = (rootrhoL*uL+rootrhoR*uR)*denom
     Qsp[2] = (rootrhoL*eL+rootrhoR*eR)*denom
-    pSP = eqnState(Qsp[0],Qsp[1],Qsp[2])
+    pSP = eqnStateQ(Qsp[0],Qsp[0]*Qsp[1],Qsp[0]*Qsp[2])
     rSP = np.sqrt(gamma*pSP/Qsp[0])+abs(Qsp[1])
     Q_rs = rSP*(QL-QR)
-    return Q_rs
+    return Q_rsdef RK2(fcn,domain):
+    """Use this method to apply RK2 in time."""
+    f = fd.domain()
+    f[:] = domain #Original domain
+    qHalfStep = fcn(domain)
+    for i in range(len(qHalfStep)):
+        qHS = makeQ((domain[i+1,0][:],))
+        qHS = qHS[1:]+dtdx*qHalfStep[i]*0.5
+        nVS = unmakeQ((qHS,))
+        domain[i+1,0][:] = nVS
+    qStep = fcn(domain)
+    for i in range(len(qStep)):
+        qS = makeQ((domain[i+1,0][:],))
+        qS = qS[1:]+dtdx*qStep[i]
+        nVS = unmakeQ((qS,))
+        domain[i+1,0][:] = nVS
+    return domain
 
-def eqnState(rho,u,e):
+def flux(qL,qR):
+    """Use this method to determine the flux."""
+    #Preallocation
+    f = np.zeros(len(qL))
+    #getting principal node values
+    uL = qL[1]/qL[0]
+    uR = qR[1]/qR[0]
+    #flux
+    pL = eqnState(qL[0],uL,qL[2]/qL[0])
+    pR = eqnState(qR[0],uR,qR[2]/qR[0])
+    f[0] = qL[1]+qR[1]
+    f[1] = qL[1]*uL+pL+qR[1]*uR+pR
+    f[2] = qL[2]*uL+pL*uL+qR[2]*uR+pR*uR
+    return f
+
+def fpfv(domain):
+    """Use this to solve euler1D."""
+    j=0 #This is for 2D
+    flx = tuple()
+    global tSum
+    for i in range(1,dims[0]-1):
+        #Getting points from domain
+        P = domain[i,j][:]
+        W = boundaryHandler(domain,i,j,-1)
+        WW = boundaryHandler(domain,i,j,-2)
+        E = boundaryHandler(domain,i,j,1)
+        EE = boundaryHandler(domain,i,j,2)
+        #nodes
+        ns = (WW,W,P,E,EE,)
+        #makeQ
+        qN = makeQ(ns)
+        #Getting reconstructed Q values at interface
+        qI = mmdlim(qN,0,i)
+        #finding flux
+        flx += (0.5*(flux(qI[0],qI[1])+spectral(qI[0],qI[1])
+              -flux(qI[2],qI[3])-spectral(qI[2],qI[3])),)
+    return flx
+
+def spectral(qL,qR):
+    """Use this method to calculate the spectral values"""
+    #Preallocation
+    qSP = np.zeros(len(qL))
+    #spectral
+#The equation of state using Q variables
+def eqnStateQ(r,rU,rE):
     """Use this method to solve for pressure."""
-    P = mG*(e-rho*u*u/2)
+    P = mG*(rE-rU*rU/(r*2))
     return P
-
+#Create node data
 def makeND(Qargs):
     """Use this function to make node data."""
     nodeData = np.zeros((len(Qargs),len(Qargs[1,:])+1))
-    P = eqnState(Qargs[:,0],Qargs[:,1]/Qargs[:,0],Qargs[:,2]/Qargs[:,0])
+    P = eqnStateQ(Qargs[:,0],Qargs[:,1],Qargs[:,2])
     i = 0
     for x in Qargs:
         nodeData[i,:] = np.array([P[i],x[0],x[1]/x[0],x[2]/x[0]])
@@ -130,9 +189,9 @@ if __name__ == '__main__':
         if x < len(currArray)/2:
             currArray[x,:] = np.array([1,1,0,2.5])
         else:
-            currArray[x,:] = np.array([0.1,0.125,0,0.25])
+            currArray[x,:] = np.array([0.1,0.125,0,2])
     print("Begin")
     eulerInfo = documentInfoGeneration()
     currArray = RK2(fv5p,currArray,dt,dx,t)
-    sf.analytSolFile(currArray,"/home/walkanth/euler1D/results/test/newNumSol.txt",eulerInfo)
+    # sf.analytSolFile(currArray,"/home/walkanth/euler1D/results/test/newNumSol.txt",eulerInfo)
     print("End")

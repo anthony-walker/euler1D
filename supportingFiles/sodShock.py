@@ -15,7 +15,7 @@ t = 0
 numPts = 0
 epsilon = 0
 
-def sodShock(fileName,fileStoreInfo,time = 0.2,lBC = (1.0,1.0,0,2.5),rBC = (0.1,0.125,0,0.25),g = 1.4,npts = 1000):
+def sodShock(fileName,fileStoreInfo,time = 0.2,lBC = (1.0,1.0,0,2.5),rBC = (0.1,0.125,0,2),g = 1.4,npts = 1000):
     """Use this method to determine the analytic solution of sod shock problem."""
     #Assigning Global variables
     gVI(g,rBC,lBC,time,npts)

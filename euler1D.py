@@ -9,7 +9,7 @@
 #Import Statements
 import fluid_domain as fd
 import numpy as np
-import time
+import time as tP
 import os
 import math
 import supportingFiles as sf
@@ -23,6 +23,7 @@ timeSteps = 0
 dx = 0
 saveFactor = 10 #Controls number of times to save
 tempQsp = 0
+tSum = 0
 # Functions for sod shock problem
 def euler1D(domain,time, g = 1.4, directory = None, ssSol = False, PyPiSol = False):
     """Use this method to execute euler1D."""
@@ -41,10 +42,14 @@ def euler1D(domain,time, g = 1.4, directory = None, ssSol = False, PyPiSol = Fal
     sI = 1
     count = 0
     multipler = 1
+
     #Calculation Begins Here
     print("Beginning Calculations...")
     for k in range(timeSteps+1):
+
         domain = RK2(fpfv,domain)
+
+
         #Saving Data
         if saves[sI] == k:
             s1 = "%.4f" % tCurr
@@ -116,6 +121,7 @@ def fpfv(domain):
     """Use this to solve euler1D."""
     j=0 #This is for 2D
     flx = tuple()
+    global tSum
     for i in range(1,dims[0]-1):
         #Getting points from domain
         P = domain[i,j][:]
@@ -155,7 +161,7 @@ def spectral(qL,qR):
 
 def eqnState(rho,u,e):
     """Use this method to solve for pressure."""
-    P = (gamma-1)*(e-rho*u*u/2)
+    P = (gamma-1)*(rho*e-rho*u*u/2)
     return P
 
 def mmdlim(P,limInd,k):
@@ -282,7 +288,7 @@ if __name__ == "__main__":
     #Problem set up - Sod Shock Problem
     #Initial and Boundary conditions
     leftBC = (1.0,1.0,0,2.5)
-    rightBC = (0.1,0.125,0,0.25)
+    rightBC = (0.1,0.125,0,2)
     #Domain Creation and Initialization
     sf.generateNodeFile("textFiles/euler1D.txt", range(0,251), range(0,1))
     domain = fd.domain("textFiles/euler1D.txt")
