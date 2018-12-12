@@ -1,8 +1,13 @@
 # euler1D
-This repository contains python files to execute an implementation of the sod shock tube problem.  
+This repository contains python files to solve the Euler equations numerically  
+using RK2 in time and a 5 point finite volume method in space. Currently, it is  
+set up to solve a staple problem (the sod shocktube). The analytical solution of  
+this problem is included and validated with a solution from PyPi to compare to  
+the numerical solution.
 
 ## Files
 The main files used in this implementation of euler1D is
+
 #### euler1D.py
 Executing this file as is will execute the sample problem setup with the sample
 domain setup found in the euler1D.txt file. This solution has been validated  
