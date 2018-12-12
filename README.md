@@ -1,5 +1,5 @@
 # euler1D
-This repository contains python files to solve the Euler equations numerically  
+This repository contains python files to solve the Euler's equations numerically  
 using RK2 in time and a 5 point finite volume method in space. Currently, it is  
 set up to solve a staple problem (the sod shocktube). The analytical solution of  
 this problem is included and validated with a solution from PyPi to compare to  
