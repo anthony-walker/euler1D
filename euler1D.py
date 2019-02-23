@@ -89,7 +89,7 @@ def RK2(fcn,data,**kwargs):
 def fv5p(Q,P):
     """Use this 5 point finite volume method to solve the euler equations."""
     #Creating flux array
-    Flux = np.zeros((len(Q),len(Q[1,:])))
+    
     #Setting up loop to span entire domain except end points
     for x in range(2,len(Q)-2):
         #Q on the left side of the minus 1/2 interface
