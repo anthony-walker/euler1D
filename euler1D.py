@@ -89,7 +89,7 @@ def RK2(fcn,data,**kwargs):
 def fv5p(Q,P):
     """Use this 5 point finite volume method to solve the euler equations."""
     #Creating flux array
-    
+    Flux = np.zeros((len(Q),len(Q[1,:])))
     #Setting up loop to span entire domain except end points
     for x in range(2,len(Q)-2):
         #Q on the left side of the minus 1/2 interface
@@ -304,12 +304,12 @@ if __name__ == "__main__":
     leftBC = (1.0,1.0,0,2.5)
     rightBC = (0.1,0.125,0,2)
     #Domain Creation and Initialization
-    sf.generateNodeFile("textFiles/euler1D.txt", range(0,1001), range(0,1))
+    sf.generateNodeFile("textFiles/euler1D.txt", range(0,101), range(0,1))
     domain = fd.domain("textFiles/euler1D.txt")
     dims = domain.getDomainDims()
     domain.setNodeVals(rightBC,range(int(dims[0]/2),dims[0]),range(dims[1]))
     domain.setNodeVals(leftBC,range(0,int(dims[0]/2)),range(dims[1]))
-    time = (0.3,0.00001)
+    time = (0.3,0.001)
     print("time end: ",time[0]," dt: ",time[1])
     print("dx: ", domain.dx)
     kwgs = {"save":True,"numerical":True,"analytical":True,"pypi":False}
