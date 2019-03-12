@@ -309,7 +309,7 @@ if __name__ == "__main__":
     dims = domain.getDomainDims()
     domain.setNodeVals(rightBC,range(int(dims[0]/2),dims[0]),range(dims[1]))
     domain.setNodeVals(leftBC,range(0,int(dims[0]/2)),range(dims[1]))
-    time = (0.3,0.001)
+    time = (0.4,0.001)
     print("time end: ",time[0]," dt: ",time[1])
     print("dx: ", domain.dx)
     kwgs = {"save":True,"numerical":True,"analytical":True,"pypi":False}
