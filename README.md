@@ -2,8 +2,7 @@
 This repository contains python files to solve the Euler's equations numerically  
 using RK2 in time and a 5 point finite volume method in space. Currently, it is  
 set up to solve a staple problem (the sod shocktube). The analytical solution of  
-this problem is included and validated with a solution from PyPi to compare to  
-the numerical solution.
+this problem is included in two forms. One from sodShock.py and another in the shocktubecalc module. 
 
 ## Files
 The main files used in this implementation of euler1D is
@@ -22,8 +21,8 @@ sodShock.py - this is the analytical solution of the sodshock tube problem
               this solution is validated with the PyPi sodshock calculation
 
 ### shocktubecalc module
-is a module from PyPi. This is a validated analytical solution to the  
-sodshock tube problem. Used to compare to the numerical solution.  
+is a module from PyPi. This is an analytical solution to the  
+sodshock tube problem used to validate the numerical solution.  
 Note that the functions from sodshock.py are used to save this  
 in a consistent form.
 
