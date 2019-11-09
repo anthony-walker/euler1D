@@ -75,6 +75,7 @@ def RK2(fcn,data,**kwargs):
         QS = Q+dtdx*0.5*fcn(Q,P)
         P = eqnStateQ(QS[:,0],QS[:,1],QS[:,2])
         Q = Q+dtdx*fcn(QS,P)
+        P = eqnStateQ(Q[:,0],Q[:,1],Q[:,2])
         tCurr+=dt
         step+=1
         #Saving data if desired
